@@ -159,15 +159,11 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">ชื่อนักศึกษา</label>
-                                    <input type="text" class="form-control" id="student_first_name" name="student_first_name">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">ชื่อ-นามสกุลนักศึกษา</label>
+                                    <input type="text" class="form-control" id="student_name" name="student_name">
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">นามสกุลนักศึกษา</label>
-                                    <input type="text" class="form-control" id="student_last_name" name="student_last_name">
-                                </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label">สาขาวิชา</label>
                                     <input type="text" class="form-control" id="student_major" name="student_major">
                                 </div>
@@ -181,13 +177,9 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">ชื่อจริง</label>
-                                    <input type="text" class="form-control" id="mentor_first_name" name="mentor_first_name">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">นามสกุล</label>
-                                    <input type="text" class="form-control" id="mentor_last_name" name="mentor_last_name">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">ชื่อ-นามสกุล (ผู้ประสานงาน)</label>
+                                    <input type="text" class="form-control" id="mentor_name" name="mentor_name">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">ตำแหน่ง</label>
@@ -237,15 +229,13 @@
 
 {% block extra_js %}
 <script>
-// ตัวแปร Modal
 let reviewModal;
 
-// เมื่อโหลดหน้าเสร็จ
 document.addEventListener('DOMContentLoaded', function() {
     reviewModal = new bootstrap.Modal(document.getElementById('reviewModal'));
 });
 
-// แสดงตัวอย่างไฟล์
+// ส่วนแสดง Preview ไฟล์ (คงเดิม)
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const preview = document.getElementById('filePreview');
@@ -254,7 +244,6 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
     
     if (file) {
         const fileType = file.type;
-        
         if (fileType.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -273,24 +262,18 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
     }
 });
 
-// จัดการการอัปโหลด
+// ส่วนอัปโหลด (คงเดิม)
 document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
-    
-    if (!file) {
-        showAlert('กรุณาเลือกไฟล์', 'warning');
-        return;
-    }
+    if (!file) { showAlert('กรุณาเลือกไฟล์', 'warning'); return; }
     
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const uploadBtn = document.getElementById('uploadBtn');
     
-    // แสดง progress
     progressContainer.classList.remove('d-none');
     uploadBtn.disabled = true;
     progressBar.style.width = '30%';
@@ -300,27 +283,17 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     formData.append('file', file);
     
     try {
-        // อัปโหลดและ OCR
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData
-        });
-        
+        const response = await fetch('/upload', { method: 'POST', body: formData });
         progressBar.style.width = '70%';
         progressText.textContent = '70%';
-        
         const result = await response.json();
-        
         progressBar.style.width = '100%';
         progressText.textContent = '100%';
         
         if (result.success) {
-            // ซ่อน progress
             setTimeout(() => {
                 progressContainer.classList.add('d-none');
                 progressBar.style.width = '0%';
-                
-                // แสดง Modal พร้อมข้อมูล
                 showReviewModal(result.data);
             }, 500);
         } else {
@@ -328,7 +301,6 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
             uploadBtn.disabled = false;
             progressContainer.classList.add('d-none');
         }
-        
     } catch (error) {
         showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger');
         uploadBtn.disabled = false;
@@ -336,29 +308,41 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     }
 });
 
-// ⭐ ฟังก์ชันแสดง Modal และเติมข้อมูล (ปรับปรุงใหม่)
-// ⭐ ฟังก์ชันแสดง Modal และเติมข้อมูล (แก้ไขการ Mapping)
+// ⭐ ฟังก์ชัน Helper: รวมชื่อและนามสกุลเป็น String เดียว
+function getFullName(obj) {
+    if (!obj) return '';
+    const first = obj.first_name || '';
+    const last = obj.last_name || '';
+    if (first && last) return `${first} ${last}`;
+    return first || last || '';
+}
+
+// ⭐ ฟังก์ชัน Helper: แยกชื่อ-นามสกุลจาก String เดียว
+function splitName(fullName) {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length > 1) {
+        return {
+            first_name: parts[0],
+            last_name: parts.slice(1).join(' ')
+        };
+    }
+    return { first_name: fullName, last_name: '' };
+}
+
 function showReviewModal(data) {
     const ocrData = data.ocr_data;
-    
-    // Debug: ดูโครงสร้างข้อมูลที่ได้จริงใน Console (กด F12 ดูได้)
-    console.log("OCR Data structure:", ocrData);
+    const safeGet = (obj, key) => (obj && obj[key] ? obj[key] : '');
 
-    // เติม Hidden fields
     document.getElementById('filename').value = data.filename || '';
     document.getElementById('file_path').value = data.file_path || '';
     document.getElementById('file_type').value = data.file_type || '';
     document.getElementById('ocr_confidence').value = data.ocr_confidence || 0;
     
-    // แสดง % ความแม่นยำ
     const confidence = Math.round((data.ocr_confidence || 0) * 100);
     document.getElementById('confidenceBar').style.width = confidence + '%';
     document.getElementById('confidenceText').textContent = confidence + '%';
-    
-    // ฟังก์ชันช่วยดึงค่า (ถ้าไม่มีให้คืนค่าว่าง) ป้องกัน Error
-    const safeGet = (obj, key) => (obj && obj[key] ? obj[key] : '');
 
-    // 1. ข้อมูลสถานประกอบการ
+    // 1. สถานประกอบการ
     if (ocrData.internship_place) {
         document.getElementById('company_name').value = safeGet(ocrData.internship_place, 'company_name');
         document.getElementById('company_address').value = safeGet(ocrData.internship_place, 'address');
@@ -376,41 +360,33 @@ function showReviewModal(data) {
     }
     document.getElementById('student_count').value = ocrData.student_count || 1;
 
-    // 3. ข้อมูลนักศึกษา
-    if (ocrData.student) {
-        document.getElementById('student_first_name').value = safeGet(ocrData.student, 'first_name');
-        document.getElementById('student_last_name').value = safeGet(ocrData.student, 'last_name');
-        document.getElementById('student_major').value = safeGet(ocrData.student, 'major');
-    }
+    // 3. ข้อมูลนักศึกษา (รวมชื่อ-นามสกุล)
+    document.getElementById('student_name').value = getFullName(ocrData.student);
+    document.getElementById('student_major').value = safeGet(ocrData.student, 'major');
 
-    // 4. ผู้ประสานงาน (พี่เลี้ยง)
-    if (ocrData.mentor) {
-        document.getElementById('mentor_first_name').value = safeGet(ocrData.mentor, 'first_name');
-        document.getElementById('mentor_last_name').value = safeGet(ocrData.mentor, 'last_name');
-        document.getElementById('coordinator_position').value = safeGet(ocrData.mentor, 'position');
-        document.getElementById('coordinator_department').value = safeGet(ocrData.mentor, 'department');
-        document.getElementById('coordinator_phone').value = safeGet(ocrData.mentor, 'phone');
-        document.getElementById('coordinator_email').value = safeGet(ocrData.mentor, 'email');
-    }
+    // 4. ผู้ประสานงาน (รวมชื่อ-นามสกุล)
+    document.getElementById('mentor_name').value = getFullName(ocrData.mentor);
+    document.getElementById('coordinator_position').value = safeGet(ocrData.mentor, 'position');
+    document.getElementById('coordinator_department').value = safeGet(ocrData.mentor, 'department');
+    document.getElementById('coordinator_phone').value = safeGet(ocrData.mentor, 'phone');
+    document.getElementById('coordinator_email').value = safeGet(ocrData.mentor, 'email');
 
-    // 5. สถานที่รายงานตัว
     document.getElementById('contact_location').value = safeGet(ocrData, 'contact_location');
 
-    // เปิด Modal
     reviewModal.show();
-    
-    // เปิดปุ่มให้กดได้อีกครั้ง
     document.getElementById('uploadBtn').disabled = false;
 }
-// บันทึกข้อมูล
+
 document.getElementById('saveBtn').addEventListener('click', async function() {
     const saveBtn = this;
     const originalHtml = saveBtn.innerHTML;
-    
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
-    
-    // รวบรวมข้อมูลจากฟอร์ม
+
+    // แยกชื่อ-นามสกุลก่อนบันทึก
+    const studentName = splitName(document.getElementById('student_name').value);
+    const mentorName = splitName(document.getElementById('mentor_name').value);
+
     const formData = {
         filename: document.getElementById('filename').value,
         file_path: document.getElementById('file_path').value,
@@ -432,13 +408,13 @@ document.getElementById('saveBtn').addEventListener('click', async function() {
                 end_date: document.getElementById('end_date').value
             },
             student: {
-                first_name: document.getElementById('student_first_name').value,
-                last_name: document.getElementById('student_last_name').value,
+                first_name: studentName.first_name,
+                last_name: studentName.last_name,
                 major: document.getElementById('student_major').value
             },
             mentor: {
-                first_name: document.getElementById('mentor_first_name').value,
-                last_name: document.getElementById('mentor_last_name').value,
+                first_name: mentorName.first_name,
+                last_name: mentorName.last_name,
                 position: document.getElementById('coordinator_position').value,
                 department: document.getElementById('coordinator_department').value,
                 phone: document.getElementById('coordinator_phone').value,
@@ -452,28 +428,19 @@ document.getElementById('saveBtn').addEventListener('click', async function() {
     try {
         const response = await fetch('/save-document', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
-        
         const result = await response.json();
-        
         if (result.success) {
             reviewModal.hide();
             showAlert('บันทึกข้อมูลสำเร็จ! กำลังไปยังหน้ารายการเอกสาร...', 'success');
-            document.getElementById('uploadForm').reset();
-            document.getElementById('filePreview').classList.add('d-none');
-            setTimeout(() => {
-                window.location.href = '/documents';
-            }, 1500);
+            setTimeout(() => { window.location.href = '/documents'; }, 1500);
         } else {
             showAlert(result.message, 'danger');
             saveBtn.disabled = false;
             saveBtn.innerHTML = originalHtml;
         }
-        
     } catch (error) {
         showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger');
         saveBtn.disabled = false;
@@ -484,13 +451,11 @@ document.getElementById('saveBtn').addEventListener('click', async function() {
 function showAlert(message, type) {
     const alertDiv = document.getElementById('alertMessage');
     alertDiv.className = `alert alert-${type}`;
-    alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+    alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
     alertDiv.classList.remove('d-none');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (type === 'success') {
-        setTimeout(() => {
-            alertDiv.classList.add('d-none');
-        }, 3000);
+        setTimeout(() => { alertDiv.classList.add('d-none'); }, 3000);
     }
 }
 </script>
