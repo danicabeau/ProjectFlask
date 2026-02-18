@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Internship Management System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 { color: #333; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; }
+        #google-login-btn {
+            background-color: white;
+            color: #757575;
+            border: 1px solid #ddd;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        #google-login-btn:hover {
+            background-color: #f1f1f1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .google-icon { width: 20px; height: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <h2>เข้าสู่ระบบ</h2>
+    <p>สำหรับนักศึกษาและอาจารย์ (KMUTNB)</p>
+    
+    <button id="google-login-btn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="google-icon" alt="Google">
+        Login with Google
+    </button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  // ใส่ Config ของคุณที่ได้จาก Firebase Console ที่นี่
+  const firebaseConfig = {
+    apiKey: "AIzaSyBdT_5-6Jzj-tytor15QU_YpNylZCw3T3E",
+    authDomain: "project-2bd05.firebaseapp.com",
+    projectId: "project-2bd05",
+    storageBucket: "project-2bd05.firebasestorage.app",
+    messagingSenderId: "1051377492576",
+    appId: "1:1051377492576:web:5eaf7d3f42f3f091535905",
+    measurementId: "G-0XTSJB1HWP"   
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  document.getElementById('google-login-btn').onclick = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        // ปรับการ Redirect ให้ตรงกับ Route ใน app.py และ Log ของคุณ
+        // ถ้าเป็น HOD ให้ไปหน้าจัดการ ถ้าเป็นนักศึกษาให้ไปหน้าอัปโหลดไฟล์
+        if (data.role === 'hod') {
+            window.location.href = '/hod/assign-advisor'; 
+        } else {
+            window.location.href = '/upload'; 
+        }
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      alert("ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง");
+    }
+  };
+</script>
+
+</body>
+</html>
