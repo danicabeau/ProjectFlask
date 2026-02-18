@@ -64,7 +64,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-  // ใส่ Config ของคุณที่ได้จาก Firebase Console ที่นี่
+  // Config ของคุณ (ถูกต้องแล้ว)
   const firebaseConfig = {
     apiKey: "AIzaSyBdT_5-6Jzj-tytor15QU_YpNylZCw3T3E",
     authDomain: "project-2bd05.firebaseapp.com",
@@ -84,6 +84,7 @@
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
 
+      // ส่ง Token ไป verify ที่หลังบ้าน (auth.py)
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,18 +92,23 @@
       });
 
       const data = await response.json();
+      
       if (data.status === 'success') {
-        // ปรับการ Redirect ให้ตรงกับ Route ใน app.py และ Log ของคุณ
-        // ถ้าเป็น HOD ให้ไปหน้าจัดการ ถ้าเป็นนักศึกษาให้ไปหน้าอัปโหลดไฟล์
+        // ⭐ จุดที่แก้ไข: เช็ค Role แล้วพาไปให้ถูกทาง
         if (data.role === 'hod') {
-            window.location.href = '/hod/assign-advisor'; 
+            // ไปหน้าอนุมัติเอกสาร
+            window.location.href = '/hod/dashboard'; 
         } else {
+            // ไปหน้าอัปโหลดเอกสาร (นักศึกษา)
             window.location.href = '/upload'; 
         }
+      } else {
+        alert("เข้าสู่ระบบไม่สำเร็จ: " + (data.message || "Unknown error"));
       }
+
     } catch (error) {
       console.error("Login Error:", error);
-      alert("ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง");
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับ Google");
     }
   };
 </script>

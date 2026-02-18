@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, redirect, url_for # <--- เพิ่ม redirect, url_for
 from firebase_admin import auth
 from utils.db import get_db
 from bson import ObjectId
@@ -32,9 +32,9 @@ def login():
                 "role": "student",
                 "password": "", 
                 "profile": {
-                    "first_name": first_name, # ดึงจากชื่อ Google
-                    "last_name": last_name,   # ดึงจากนามสกุล Google
-                    "phone": ""               # ใส่ค่าว่างไว้ก่อนเพื่อให้ผ่านกฎ
+                    "first_name": first_name, 
+                    "last_name": last_name,   
+                    "phone": ""               
                 },
                 "is_active": True,
                 "created_at": datetime.now()
@@ -47,6 +47,7 @@ def login():
         session['user_id'] = str(user['_id'])
         session['role'] = user['role']
         session['email'] = email
+        session['user_name'] = user['name'] # เพิ่มบรรทัดนี้เพื่อให้ base.html แสดงชื่อได้
 
         print(f"✅ Login Success: {email} (Role: {user['role']})")
         return jsonify({"status": "success", "role": user['role']})
@@ -54,3 +55,10 @@ def login():
     except Exception as e:
         print(f"❌ Firebase Error: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 401
+
+# ⭐ เพิ่มส่วนนี้: ฟังก์ชัน Logout
+@auth_bp.route('/logout')
+def logout():
+    session.clear() # ล้าง Session ทั้งหมด
+    print("🔒 User logged out.")
+    return redirect(url_for('index')) # กลับไปหน้าแรก (ซึ่งจะเด้งไปหน้า Login)

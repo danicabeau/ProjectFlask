@@ -5,226 +5,68 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">
-                    <i class="fas fa-cloud-upload-alt"></i> อัปโหลดแบบยืนยันการตอบรับนักศึกษาสหกิจศึกษา
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0 fs-5">
+                    <i class="fas fa-cloud-upload-alt"></i> อัปโหลดแบบยืนยันการตอบรับนักศึกษา
                 </h4>
+                <a href="/documents" class="btn btn-light btn-sm shadow-sm px-3">
+                    <i class="fas fa-history me-1"></i> ประวัติของฉัน
+                </a>
             </div>
-            <div class="card-body">
-                <div id="alertMessage" class="alert d-none" role="alert"></div>
+            
+            <div class="card-body p-4">
+                <div id="alertMessage" class="alert d-none shadow-sm" role="alert"></div>
                 
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="mb-4">
-                        <label for="fileInput" class="form-label">
-                            <i class="fas fa-file-pdf"></i> เลือกไฟล์เอกสาร (PDF, PNG, JPG, JPEG)
+                        <label for="fileInput" class="form-label fw-bold">
+                            <i class="fas fa-file-pdf text-danger"></i> เลือกไฟล์เอกสาร (PDF, PNG, JPG)
                         </label>
-                        <input type="file" class="form-control" id="fileInput" name="file" 
+                        <input type="file" class="form-control form-control-lg" id="fileInput" name="file" 
                                accept=".pdf,.png,.jpg,.jpeg" required>
-                        <small class="text-muted">ขนาดไฟล์สูงสุด: 16 MB</small>
-                    </div>
-                    
-                    <div id="filePreview" class="mb-3 d-none">
-                        <h6>ตัวอย่างไฟล์:</h6>
-                        <img id="imagePreview" class="img-fluid rounded border" style="max-height: 400px;">
-                        <p id="pdfPreview" class="text-muted"></p>
-                    </div>
-                    
-                    <div id="progressContainer" class="mb-3 d-none">
-                        <div class="progress" style="height: 25px;">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                                 role="progressbar" style="width: 0%">
-                                <span id="progressText">0%</span>
-                            </div>
+                        <div class="form-text mt-2">
+                            <i class="fas fa-info-circle"></i> ขนาดไฟล์สูงสุด: 16 MB | แนะนำไฟล์ที่ตัวหนังสือชัดเจนเพื่อความแม่นยำของ AI
                         </div>
-                        <p class="text-center mt-2">
-                            <i class="fas fa-robot fa-spin"></i> กำลังอ่านข้อมูลด้วย AI OCR กรุณารอสักครู่...
+                    </div>
+                    
+                    <div id="filePreview" class="mb-4 d-none">
+                        <h6 class="border-bottom pb-2">ตัวอย่างไฟล์:</h6>
+                        <div class="text-center bg-light p-3 rounded">
+                            <img id="imagePreview" class="img-fluid rounded shadow-sm" style="max-height: 350px;">
+                            <p id="pdfPreview" class="text-muted fw-bold"></p>
+                        </div>
+                    </div>
+                    
+                    <div id="progressContainer" class="mb-4 d-none">
+                        <div class="progress" style="height: 12px; border-radius: 10px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-center mt-3 text-primary fw-bold">
+                            <i class="fas fa-robot fa-spin me-2"></i> AI OCR กำลังวิเคราะห์ข้อมูล...
                         </p>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary btn-lg w-100" id="uploadBtn">
-                        <i class="fas fa-upload"></i> อัปโหลดและอ่านข้อมูลอัตโนมัติ
+                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow" id="uploadBtn">
+                        <i class="fas fa-magic"></i> เริ่มอัปโหลดและอ่านข้อมูล
                     </button>
                 </form>
             </div>
         </div>
         
-        <div class="card mt-4">
+        <div class="card mt-4 border-0 shadow-sm bg-light">
             <div class="card-body">
-                <h5><i class="fas fa-info-circle text-info"></i> คำแนะนำ</h5>
-                <ul class="mb-0">
-                    <li>อัปโหลดแบบฟอร์มยืนยันการตอบรับนักศึกษาสหกิจศึกษา (สกศ-03)</li>
-                    <li>ระบบจะอ่านข้อมูลอัตโนมัติด้วย AI OCR</li>
-                    <li>คุณสามารถตรวจสอบและแก้ไขข้อมูลก่อนบันทึก</li>
-                    <li>รองรับไฟล์: PDF, PNG, JPG, JPEG</li>
+                <h6 class="fw-bold"><i class="fas fa-lightbulb text-warning"></i> Tips:</h6>
+                <ul class="small text-muted mb-0">
+                    <li>ระบบจะดึงชื่อบริษัท, ที่อยู่, และระยะเวลาฝึกงานให้โดยอัตโนมัติ</li>
+                    <li>ตรวจสอบความถูกต้องในหน้าต่าง Review ก่อนกดบันทึกเสมอ</li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="reviewModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-check-circle"></i> ตรวจสอบข้อมูลจากเอกสาร
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong><i class="fas fa-robot"></i> ความแม่นยำของ AI OCR:</strong>
-                        <span id="confidenceText" class="badge bg-primary">0%</span>
-                    </div>
-                    <div class="progress" style="height: 20px;">
-                        <div id="confidenceBar" class="progress-bar progress-bar-striped" 
-                             style="width: 0%"></div>
-                    </div>
-                    <small class="text-muted mt-2 d-block">
-                        <i class="fas fa-exclamation-triangle"></i> กรุณาตรวจสอบและแก้ไขข้อมูลให้ถูกต้องก่อนบันทึก
-                    </small>
-                </div>
-
-                <form id="reviewForm">
-                    <input type="hidden" id="filename" name="filename">
-                    <input type="hidden" id="file_path" name="file_path">
-                    <input type="hidden" id="file_type" name="file_type">
-                    <input type="hidden" id="ocr_confidence" name="ocr_confidence">
-
-                    <div class="card mb-3">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0"><i class="fas fa-building"></i> ข้อมูลสถานประกอบการ</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">ชื่อสถานประกอบการ <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="company_name" name="company_name" required>
-                                </div>
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">ที่อยู่เลขที่ <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="company_address" name="company_address" rows="2" required></textarea>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">โทรศัพท์</label>
-                                    <input type="text" class="form-control" id="company_phone" name="company_phone">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">โทรสาร</label>
-                                    <input type="text" class="form-control" id="company_fax" name="company_fax">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">E-mail</label>
-                                    <input type="email" class="form-control" id="company_email" name="company_email">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">ประเภทธุรกิจ</label>
-                                    <input type="text" class="form-control" id="business_type" name="business_type">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">จังหวัด</label>
-                                    <input type="text" class="form-control" id="company_province" name="company_province">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card mb-3">
-                        <div class="card-header bg-warning text-dark">
-                            <h6 class="mb-0"><i class="fas fa-calendar-alt"></i> ระยะเวลาฝึกงาน</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">วันที่เริ่มต้น</label>
-                                    <input type="text" class="form-control" id="start_date" name="start_date" placeholder="YYYY-MM-DD">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">วันที่สิ้นสุด</label>
-                                    <input type="text" class="form-control" id="end_date" name="end_date" placeholder="YYYY-MM-DD">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">จำนวนนักศึกษา</label>
-                                    <input type="number" class="form-control" id="student_count" name="student_count" min="1" value="1">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card mb-3">
-                        <div class="card-header bg-info text-white">
-                            <h6 class="mb-0"><i class="fas fa-user-graduate"></i> ข้อมูลนักศึกษา</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">ชื่อ-นามสกุลนักศึกษา</label>
-                                    <input type="text" class="form-control" id="student_name" name="student_name">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">สาขาวิชา</label>
-                                    <input type="text" class="form-control" id="student_major" name="student_major">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card mb-3">
-                        <div class="card-header bg-secondary text-white">
-                            <h6 class="mb-0"><i class="fas fa-user-tie"></i> ผู้ประสานงานของสถานประกอบการ (พี่เลี้ยง)</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">ชื่อ-นามสกุล (ผู้ประสานงาน)</label>
-                                    <input type="text" class="form-control" id="mentor_name" name="mentor_name">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">ตำแหน่ง</label>
-                                    <input type="text" class="form-control" id="coordinator_position" name="coordinator_position">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">แผนก/ฝ่าย</label>
-                                    <input type="text" class="form-control" id="coordinator_department" name="coordinator_department">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">โทรศัพท์</label>
-                                    <input type="text" class="form-control" id="coordinator_phone" name="coordinator_phone">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">E-mail</label>
-                                    <input type="email" class="form-control" id="coordinator_email" name="coordinator_email">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card mb-3">
-                        <div class="card-header bg-dark text-white">
-                            <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> สถานที่รายงานตัว</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label">ให้นักศึกษาติดต่อ/รายงานตัวได้ที่</label>
-                                <textarea class="form-control" id="contact_location" name="contact_location" rows="2"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times"></i> ยกเลิก
-                </button>
-                <button type="button" class="btn btn-success btn-lg" id="saveBtn">
-                    <i class="fas fa-save"></i> บันทึกลงฐานข้อมูล
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
