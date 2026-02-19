@@ -1,0 +1,6 @@
+# ไฟล์เก็บ Key และการตั้งค่าต่างๆ
+.env
+serviceAccountKey.json
+config.py
+*.key
+*.pem
