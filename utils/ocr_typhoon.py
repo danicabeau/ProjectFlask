@@ -10,6 +10,26 @@ from peft import PeftModel
 from transformers import AutoModelForImageTextToText, AutoProcessor
 from qwen_vl_utils import process_vision_info
 
+def thai_date_to_iso(date_str):
+    """แปลงวันที่ '19 พฤษภาคม 2568' เป็น '2025-05-19'"""
+    if not date_str: return ""
+    months = {
+        'มกราคม': '01', 'กุมภาพันธ์': '02', 'มีนาคม': '03', 'เมษายน': '04',
+        'พฤษภาคม': '05', 'มิถุนายน': '06', 'กรกฎาคม': '07', 'สิงหาคม': '08',
+        'กันยายน': '09', 'ตุลาคม': '10', 'พฤศจิกายน': '11', 'ธันวาคม': '12'
+    }
+    try:
+        parts = date_str.strip().split()
+        if len(parts) >= 3:
+            day = parts[0].zfill(2)
+            month = months.get(parts[1], '01')
+            # แปลง พ.ศ. เป็น ค.ศ.
+            year = str(int(parts[2]) - 543)
+            return f"{year}-{month}-{day}"
+    except:
+        pass
+    return ""
+
 class TyphoonOCR:
     def __init__(self, model_path: str = None):
         if model_path is None:
@@ -50,6 +70,12 @@ class TyphoonOCR:
             'student_count': 1,
             'contact_location': ''
         }
+    
+    def _clear_memory(self):
+        """เพิ่มฟังก์ชันนี้เพื่อล้างแรมการ์ดจอโดยเฉพาะ"""
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
 
     def extract_structured_data(self, image_path: str) -> Dict[str, Any]:
         try:
@@ -65,12 +91,15 @@ class TyphoonOCR:
                     generated_ids = self.model.generate(**inputs, max_new_tokens=1024, do_sample=False)
                 
                 output_text = self.processor.batch_decode(generated_ids[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)[0]
+                del inputs, generated_ids, image_inputs
             
             print(f"DEBUG: AI Raw Response ->\n{output_text}")
             return self.parse_internship_data(output_text)
         except Exception as e:
             print(f"❌ Extraction Error: {e}")
             return self._get_empty_structure()
+        finally:
+            self._clear_memory()
 
     def parse_internship_data(self, text: str) -> Dict[str, Any]:
         """Hybrid Parser: แบ่งโซน + จับหลังคอมมา (แม่นยำที่สุดสำหรับเคสนี้)"""
@@ -149,10 +178,10 @@ class TyphoonOCR:
             data['student']['last_name'] = " ".join(parts[1:]) if len(parts) > 1 else ""
 
         # ระยะเวลา
-        m_period = re.search(r'ระหว่างวันที่\s*(.*?)\s*ถึงวันที่\s*(.*?)\s*จำนวน', company_text)
+        m_period = re.search(r'ระหว่างวันที่\s*(.*?)\s*ถึงวันที่\s*(.*?)\s*จำนวน', text)
         if m_period:
-            data['internship_period']['start_date'] = clean_value(m_period.group(1))
-            data['internship_period']['end_date'] = clean_value(m_period.group(2))
+            data['internship_period']['start_date'] = thai_date_to_iso(clean_value(m_period.group(1)))
+            data['internship_period']['end_date'] = thai_date_to_iso(clean_value(m_period.group(2)))
             
         m_count = re.search(r'จำนวน\s*(\d+)\s*คน', company_text)
         if m_count: data['student_count'] = int(m_count.group(1))

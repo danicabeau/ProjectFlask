@@ -26,7 +26,7 @@
                         <input type="file" class="form-control form-control-lg" id="fileInput" name="file" 
                                accept=".pdf,.png,.jpg,.jpeg" required>
                         <div class="form-text mt-2">
-                            <i class="fas fa-info-circle"></i> ขนาดไฟล์สูงสุด: 16 MB | แนะนำไฟล์ที่ตัวหนังสือชัดเจนเพื่อความแม่นยำของ AI
+                            <i class="fas fa-info-circle"></i> ขนาดไฟล์สูงสุด: 16 MB | แนะนำไฟล์ที่ตัวหนังสือชัดเจน
                         </div>
                     </div>
                     
@@ -44,7 +44,8 @@
                                  role="progressbar" style="width: 0%"></div>
                         </div>
                         <p class="text-center mt-3 text-primary fw-bold">
-                            <i class="fas fa-robot fa-spin me-2"></i> AI OCR กำลังวิเคราะห์ข้อมูล...
+                            <i class="fas fa-robot fa-spin me-2"></i> 
+                            <span id="progressText">0%</span> AI OCR กำลังวิเคราะห์ข้อมูล...
                         </p>
                     </div>
                     
@@ -54,19 +55,118 @@
                 </form>
             </div>
         </div>
-        
-        <div class="card mt-4 border-0 shadow-sm bg-light">
-            <div class="card-body">
-                <h6 class="fw-bold"><i class="fas fa-lightbulb text-warning"></i> Tips:</h6>
-                <ul class="small text-muted mb-0">
-                    <li>ระบบจะดึงชื่อบริษัท, ที่อยู่, และระยะเวลาฝึกงานให้โดยอัตโนมัติ</li>
-                    <li>ตรวจสอบความถูกต้องในหน้าต่าง Review ก่อนกดบันทึกเสมอ</li>
-                </ul>
+    </div>
+</div>
+
+<div class="modal fade" id="reviewModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fas fa-search me-2"></i> ตรวจสอบข้อมูลจาก AI OCR</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="small fw-bold mb-1">ความมั่นใจของ AI:</label>
+                    <div class="progress" style="height: 10px;">
+                        <div id="confidenceBar" class="progress-bar bg-info" style="width: 0%"></div>
+                    </div>
+                    <small id="confidenceText" class="text-muted">0%</small>
+                </div>
+
+                <input type="hidden" id="filename">
+                <input type="hidden" id="file_path">
+                <input type="hidden" id="file_type">
+                <input type="hidden" id="ocr_confidence">
+
+                <div class="row g-3">
+                    <div class="col-12"><h6 class="border-start border-4 border-primary ps-2 fw-bold text-primary mt-2">ข้อมูลสถานประกอบการ</h6></div>
+                    <div class="col-md-12">
+                        <label class="form-label small">ชื่อบริษัท</label>
+                        <input type="text" class="form-control" id="company_name">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small">ที่อยู่</label>
+                        <input type="text" class="form-control" id="company_address">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">จังหวัด</label>
+                        <input type="text" class="form-control" id="company_province">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">โทรศัพท์</label>
+                        <input type="text" class="form-control" id="company_phone">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">อีเมลบริษัท</label>
+                        <input type="email" class="form-control" id="company_email">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">ประเภทธุรกิจ</label>
+                        <input type="text" class="form-control" id="business_type">
+                    </div>
+                    <input type="hidden" id="company_fax">
+
+                    <div class="col-12 mt-3"><h6 class="border-start border-4 border-success ps-2 fw-bold text-success">ระยะเวลาฝึกงาน</h6></div>
+                    <div class="col-md-5">
+                        <label class="form-label small">วันที่เริ่ม</label>
+                        <input type="date" class="form-control" id="start_date">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small">วันที่สิ้นสุด</label>
+                        <input type="date" class="form-control" id="end_date">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">จำนวน (คน)</label>
+                        <input type="number" class="form-control" id="student_count">
+                    </div>
+
+                    <div class="col-12 mt-3"><h6 class="border-start border-4 border-warning ps-2 fw-bold text-dark">ข้อมูลนักศึกษา</h6></div>
+                    <div class="col-md-6">
+                        <label class="form-label small">ชื่อ-นามสกุล</label>
+                        <input type="text" class="form-control" id="student_name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">สาขาวิชา</label>
+                        <input type="text" class="form-control" id="student_major">
+                    </div>
+
+                    <div class="col-12 mt-3"><h6 class="border-start border-4 border-info ps-2 fw-bold text-info">ผู้ประสานงาน / พี่เลี้ยง</h6></div>
+                    <div class="col-md-6">
+                        <label class="form-label small">ชื่อ-นามสกุล</label>
+                        <input type="text" class="form-control" id="mentor_name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">ตำแหน่ง</label>
+                        <input type="text" class="form-control" id="coordinator_position">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">แผนก</label>
+                        <input type="text" class="form-control" id="coordinator_department">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">เบอร์โทรศัพท์</label>
+                        <input type="text" class="form-control" id="coordinator_phone">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">อีเมล</label>
+                        <input type="email" class="form-control" id="coordinator_email">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small">สถานที่ติดต่ออื่น (ถ้ามี)</label>
+                        <input type="text" class="form-control" id="contact_location">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" id="saveBtn" class="btn btn-success px-4 fw-bold">
+                    <i class="fas fa-save me-1"></i> ยืนยันและบันทึกข้อมูล
+                </button>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -74,10 +174,14 @@
 let reviewModal;
 
 document.addEventListener('DOMContentLoaded', function() {
-    reviewModal = new bootstrap.Modal(document.getElementById('reviewModal'));
+    // แก้ไข: ป้องกัน Error กรณี Modal ยังไม่ถูกโหลด
+    const modalEl = document.getElementById('reviewModal');
+    if (modalEl) {
+        reviewModal = new bootstrap.Modal(modalEl);
+    }
 });
 
-// ส่วนแสดง Preview ไฟล์ (คงเดิม)
+// ส่วน Preview ไฟล์
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const preview = document.getElementById('filePreview');
@@ -104,130 +208,117 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
     }
 });
 
-// ส่วนอัปโหลด (คงเดิม)
+// ส่วนส่งไฟล์ไป OCR (แก้ไขบล็อก finally เพื่อให้กดรอบสองได้)
 document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
-    if (!file) { showAlert('กรุณาเลือกไฟล์', 'warning'); return; }
-    
+    const uploadBtn = document.getElementById('uploadBtn');
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
-    const uploadBtn = document.getElementById('uploadBtn');
-    
-    progressContainer.classList.remove('d-none');
+    const file = document.getElementById('fileInput').files[0];
+
+    if (!file) return;
+
+    // เตรียมสถานะ UI
     uploadBtn.disabled = true;
+    progressContainer.classList.remove('d-none');
     progressBar.style.width = '30%';
     progressText.textContent = '30%';
-    
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
         const response = await fetch('/upload', { method: 'POST', body: formData });
-        progressBar.style.width = '70%';
-        progressText.textContent = '70%';
+        progressBar.style.width = '80%';
+        progressText.textContent = '80%';
+        
         const result = await response.json();
-        progressBar.style.width = '100%';
-        progressText.textContent = '100%';
         
         if (result.success) {
-            setTimeout(() => {
-                progressContainer.classList.add('d-none');
-                progressBar.style.width = '0%';
-                showReviewModal(result.data);
-            }, 500);
+            progressBar.style.width = '100%';
+            progressText.textContent = '100%';
+            setTimeout(() => showReviewModal(result.data), 500);
         } else {
             showAlert(result.message, 'danger');
-            uploadBtn.disabled = false;
-            progressContainer.classList.add('d-none');
         }
     } catch (error) {
-        showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger');
+        showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message, 'danger');
+    } finally {
+        // ⭐ จุดสำคัญที่สุด: ปลดล็อคปุ่มเพื่อให้กดรอบสองได้
         uploadBtn.disabled = false;
         progressContainer.classList.add('d-none');
     }
 });
 
-// ⭐ ฟังก์ชัน Helper: รวมชื่อและนามสกุลเป็น String เดียว
-function getFullName(obj) {
-    if (!obj) return '';
-    const first = obj.first_name || '';
-    const last = obj.last_name || '';
-    if (first && last) return `${first} ${last}`;
-    return first || last || '';
-}
-
-// ⭐ ฟังก์ชัน Helper: แยกชื่อ-นามสกุลจาก String เดียว
-function splitName(fullName) {
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length > 1) {
-        return {
-            first_name: parts[0],
-            last_name: parts.slice(1).join(' ')
-        };
-    }
-    return { first_name: fullName, last_name: '' };
-}
-
+// ฟังก์ชันแสดงข้อมูลใน Modal (แก้ตาม IDs ที่ตั้งไว้)
 function showReviewModal(data) {
-    const ocrData = data.ocr_data;
+    const ocr = data.ocr_data;
     const safeGet = (obj, key) => (obj && obj[key] ? obj[key] : '');
 
+    // ข้อมูลพื้นฐาน
     document.getElementById('filename').value = data.filename || '';
     document.getElementById('file_path').value = data.file_path || '';
     document.getElementById('file_type').value = data.file_type || '';
     document.getElementById('ocr_confidence').value = data.ocr_confidence || 0;
-    
-    const confidence = Math.round((data.ocr_confidence || 0) * 100);
-    document.getElementById('confidenceBar').style.width = confidence + '%';
-    document.getElementById('confidenceText').textContent = confidence + '%';
+
+    const conf = Math.round((data.ocr_confidence || 0) * 100);
+    document.getElementById('confidenceBar').style.width = conf + '%';
+    document.getElementById('confidenceText').textContent = conf + '%';
 
     // 1. สถานประกอบการ
-    if (ocrData.internship_place) {
-        document.getElementById('company_name').value = safeGet(ocrData.internship_place, 'company_name');
-        document.getElementById('company_address').value = safeGet(ocrData.internship_place, 'address');
-        document.getElementById('company_phone').value = safeGet(ocrData.internship_place, 'phone');
-        document.getElementById('company_fax').value = safeGet(ocrData.internship_place, 'fax');
-        document.getElementById('company_email').value = safeGet(ocrData.internship_place, 'email');
-        document.getElementById('business_type').value = safeGet(ocrData.internship_place, 'business_type');
-        document.getElementById('company_province').value = safeGet(ocrData.internship_place, 'province');
+    if (ocr.internship_place) {
+        const place = ocr.internship_place;
+        document.getElementById('company_name').value = safeGet(place, 'company_name');
+        document.getElementById('company_address').value = safeGet(place, 'address');
+        document.getElementById('company_province').value = safeGet(place, 'province');
+        document.getElementById('company_phone').value = safeGet(place, 'phone');
+        document.getElementById('company_email').value = safeGet(place, 'email');
+        document.getElementById('business_type').value = safeGet(place, 'business_type');
     }
 
     // 2. ระยะเวลา
-    if (ocrData.internship_period) {
-        document.getElementById('start_date').value = safeGet(ocrData.internship_period, 'start_date');
-        document.getElementById('end_date').value = safeGet(ocrData.internship_period, 'end_date');
+    if (ocr.internship_period) {
+        document.getElementById('start_date').value = safeGet(ocr.internship_period, 'start_date');
+        document.getElementById('end_date').value = safeGet(ocr.internship_period, 'end_date');
     }
-    document.getElementById('student_count').value = ocrData.student_count || 1;
+    document.getElementById('student_count').value = ocr.student_count || 1;
 
-    // 3. ข้อมูลนักศึกษา (รวมชื่อ-นามสกุล)
-    document.getElementById('student_name').value = getFullName(ocrData.student);
-    document.getElementById('student_major').value = safeGet(ocrData.student, 'major');
+    // 3. นักศึกษา (รวมชื่อ-นามสกุล)
+    const std = ocr.student || {};
+    document.getElementById('student_name').value = `${std.first_name || ''} ${std.last_name || ''}`.strip();
+    document.getElementById('student_major').value = std.major || '';
 
     // 4. ผู้ประสานงาน (รวมชื่อ-นามสกุล)
-    document.getElementById('mentor_name').value = getFullName(ocrData.mentor);
-    document.getElementById('coordinator_position').value = safeGet(ocrData.mentor, 'position');
-    document.getElementById('coordinator_department').value = safeGet(ocrData.mentor, 'department');
-    document.getElementById('coordinator_phone').value = safeGet(ocrData.mentor, 'phone');
-    document.getElementById('coordinator_email').value = safeGet(ocrData.mentor, 'email');
-
-    document.getElementById('contact_location').value = safeGet(ocrData, 'contact_location');
+    const mnt = ocr.mentor || {};
+    document.getElementById('mentor_name').value = `${mnt.first_name || ''} ${mnt.last_name || ''}`.strip();
+    document.getElementById('coordinator_position').value = mnt.position || '';
+    document.getElementById('coordinator_department').value = mnt.department || '';
+    document.getElementById('coordinator_phone').value = mnt.phone || '';
+    document.getElementById('coordinator_email').value = mnt.email || '';
+    document.getElementById('contact_location').value = ocr.contact_location || '';
 
     reviewModal.show();
-    document.getElementById('uploadBtn').disabled = false;
 }
 
-document.getElementById('saveBtn').addEventListener('click', async function() {
-    const saveBtn = this;
-    const originalHtml = saveBtn.innerHTML;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+// ฟังก์ชันช่วยจัดการ Space
+String.prototype.strip = function() { return this.replace(/^\s+|\s+$/g, ''); };
 
-    // แยกชื่อ-นามสกุลก่อนบันทึก
-    const studentName = splitName(document.getElementById('student_name').value);
-    const mentorName = splitName(document.getElementById('mentor_name').value);
+// ส่วนบันทึกข้อมูล (Save)
+document.getElementById('saveBtn').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> บันทึก...';
+
+    // แยกชื่อ-นามสกุลแบบง่าย
+    const split = (val) => {
+        const p = val.trim().split(/\s+/);
+        return { first: p[0] || '', last: p.slice(1).join(' ') || '' };
+    };
+
+    const stdName = split(document.getElementById('student_name').value);
+    const mntName = split(document.getElementById('mentor_name').value);
 
     const formData = {
         filename: document.getElementById('filename').value,
@@ -238,67 +329,56 @@ document.getElementById('saveBtn').addEventListener('click', async function() {
             internship_place: {
                 company_name: document.getElementById('company_name').value,
                 address: document.getElementById('company_address').value,
-                phone: document.getElementById('company_phone').value,
-                fax: document.getElementById('company_fax').value,
-                email: document.getElementById('company_email').value,
-                business_type: document.getElementById('business_type').value,
                 province: document.getElementById('company_province').value,
-                country: 'ประเทศไทย'
+                phone: document.getElementById('company_phone').value,
+                email: document.getElementById('company_email').value,
+                business_type: document.getElementById('business_type').value
             },
             internship_period: {
                 start_date: document.getElementById('start_date').value,
                 end_date: document.getElementById('end_date').value
             },
-            student: {
-                first_name: studentName.first_name,
-                last_name: studentName.last_name,
-                major: document.getElementById('student_major').value
-            },
-            mentor: {
-                first_name: mentorName.first_name,
-                last_name: mentorName.last_name,
+            student: { first_name: stdName.first, last_name: stdName.last, major: document.getElementById('student_major').value },
+            mentor: { 
+                first_name: mntName.first, last_name: mntName.last, 
                 position: document.getElementById('coordinator_position').value,
                 department: document.getElementById('coordinator_department').value,
                 phone: document.getElementById('coordinator_phone').value,
                 email: document.getElementById('coordinator_email').value
             },
-            student_count: parseInt(document.getElementById('student_count').value) || 1,
+            student_count: parseInt(document.getElementById('student_count').value),
             contact_location: document.getElementById('contact_location').value
         }
     };
-    
+
     try {
         const response = await fetch('/save-document', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
-        const result = await response.json();
-        if (result.success) {
+        const res = await response.json();
+        if (res.success) {
             reviewModal.hide();
-            showAlert('บันทึกข้อมูลสำเร็จ! กำลังไปยังหน้ารายการเอกสาร...', 'success');
+            showAlert('บันทึกสำเร็จ! กำลังย้ายหน้า...', 'success');
             setTimeout(() => { window.location.href = '/documents'; }, 1500);
         } else {
-            showAlert(result.message, 'danger');
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalHtml;
+            showAlert(res.message, 'danger');
         }
-    } catch (error) {
-        showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger');
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalHtml;
+    } catch (e) {
+        showAlert('Save Error: ' + e.message, 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 });
 
-function showAlert(message, type) {
-    const alertDiv = document.getElementById('alertMessage');
-    alertDiv.className = `alert alert-${type}`;
-    alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
-    alertDiv.classList.remove('d-none');
+function showAlert(msg, type) {
+    const div = document.getElementById('alertMessage');
+    div.className = `alert alert-${type}`;
+    div.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
+    div.classList.remove('d-none');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (type === 'success') {
-        setTimeout(() => { alertDiv.classList.add('d-none'); }, 3000);
-    }
 }
 </script>
 {% endblock %}
