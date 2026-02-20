@@ -1,73 +1,72 @@
+# app.py
 from flask import Flask, render_template, session, redirect, url_for, jsonify
 from config import config
 import os
 import firebase_admin
 from firebase_admin import credentials
+from extenstions import mail
 
-# Import ยูทิลิตี้และเส้นทาง (Routes)
+# Import ยูทิลิตี้และเส้นทาง
 from utils.db import get_db
 from routes.upload import upload_bp
 from routes.auth import auth_bp
 from routes.hod import hod_bp
+from routes.lecturer import lecturer_bp
 
 def create_app(config_name='development'):
     app = Flask(__name__)
     
-    # 1. Config
+    # 1. Config หลัก
     app.config.from_object(config[config_name])
     
-    # 2. Create Upload Folder
+    # 2. ตั้งค่า Mail
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USERNAME'] = 'inturnshipweb@gmail.com'
+    app.config['MAIL_PASSWORD'] = 'tthbhbogumvsiihf' 
+    app.config['MAIL_DEFAULT_SENDER'] = 'inturnshipweb@gmail.com'
+    
+    # ⭐ ผูก Mail เข้ากับ App
+    mail.init_app(app)
+    
+    # 3. สร้าง Upload Folder
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
-        print(f"📁 Created upload folder at: {app.config['UPLOAD_FOLDER']}")
 
-    # 3. Firebase Init
+    # 4. Firebase Init
     if not firebase_admin._apps:
         try:
-            cred_path = 'serviceAccountKey.json'
-            cred = credentials.Certificate(cred_path)
+            cred = credentials.Certificate('serviceAccountKey.json')
             firebase_admin.initialize_app(cred)
-            print("🔥 Firebase Admin initialized successfully.")
+            print("🔥 Firebase initialized.")
         except Exception as e:
-            print(f"⚠️ Firebase initialization failed: {e}")
+            print(f"⚠️ Firebase failed: {e}")
 
-    # 4. Database & Blueprints
+    # 5. Database & Blueprints
     with app.app_context():
         database = get_db()
-        print(f"✅ Flask app connected to database: {database.name}")
-        
         app.register_blueprint(upload_bp)
         app.register_blueprint(auth_bp)
         app.register_blueprint(hod_bp)
+        app.register_blueprint(lecturer_bp)
 
-    # --- เส้นทางหลัก (Routes) ---
-
+    # 6. Routes หลัก
     @app.route('/')
     def index():
-        # 1. ถ้ายังไม่ Login -> ไปหน้า Login
         if 'user_id' not in session:
             return render_template('login.html') 
         
-        # 2. ถ้า Login แล้ว -> เช็ค Role
         user_role = session.get('role')
-        
-        # ⭐ ถ้าเป็น HOD ให้ไปหน้า Dashboard อนุมัติ
         if user_role == 'hod':
-            # ต้องเป็น hod.dashboard ไม่ใช่ hod.assign_advisor หรือชื่ออื่น
             return redirect(url_for('hod.dashboard'))
-            
-        # ⭐ ถ้าเป็นนักศึกษา (หรืออื่นๆ) ให้ไปหน้าอัปโหลดเอกสาร
+        elif user_role == 'lecturer':
+            return redirect(url_for('lecturer.dashboard'))
         return redirect(url_for('upload.upload_page'))
 
     # --- Error Handlers ---
-
     @app.errorhandler(404)
-    def not_found(error):
-        return "<h1>404 - ไม่พบหน้านี้ครับ</h1>", 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        return "<h1>500 - เซิร์ฟเวอร์มีปัญหา</h1>", 500
+    def not_found(error): return "<h1>404 - ไม่พบหน้านี้ครับ</h1>", 404
 
     return app
 

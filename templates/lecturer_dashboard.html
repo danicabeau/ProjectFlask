@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    .badge-scheduled  { background-color: #0dcaf0; color: #000; }
+    .badge-assigned   { background-color: #6c757d; color: #fff; }
+    .badge-in_progress{ background-color: #0d6efd; color: #fff; }
+    .badge-completed  { background-color: #198754; color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="mb-4">
+        <h2><i class="fas fa-user-graduate text-success"></i> นักศึกษาในความดูแล</h2>
+        <nav class="mt-2">
+            <a href="/lecturer/dashboard" class="btn btn-primary btn-sm active shadow-sm">นักศึกษาของฉัน</a>
+            <a href="/lecturer/claim-students" class="btn btn-outline-primary btn-sm shadow-sm">เรียกนักศึกษาใหม่</a>
+        </nav>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <table id="myStudentTable" class="table table-hover align-middle">
+                <thead class="bg-light">
+                    <tr>
+                        <th>ชื่อนักศึกษา</th>
+                        <th>บริษัท</th>
+                        <th>วันนัดนิเทศ</th>
+                        <th>สถานะ</th>
+                        <th class="text-end">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td>
+                            <strong>{{ s.student.name or s.ocr.student.first_name ~ ' ' ~ s.ocr.student.last_name }}</strong>
+                        </td>
+                        <td>
+                            {{ s.company.company_name or '-' }}
+                            {% if s.company.province %}
+                                <br><small class="text-muted">{{ s.company.province }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.appointment.date %}
+                                {{ s.appointment.date }}
+                                <br><small class="text-muted">{{ s.appointment.time }} น.</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set status = s.status %}
+                            {% if status == 'scheduled' %}
+                                <span class="badge badge-scheduled">นัดแล้ว</span>
+                            {% elif status == 'in_progress' %}
+                                <span class="badge badge-in_progress">กำลังดำเนินการ</span>
+                            {% elif status == 'completed' %}
+                                <span class="badge badge-completed">เสร็จสิ้น</span>
+                            {% else %}
+                                <span class="badge badge-assigned">มอบหมายแล้ว</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if s.appointment.eval_link %}
+                            <a href="{{ s.appointment.eval_link }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-external-link-alt"></i> ลิงก์ประเมิน
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#myStudentTable').DataTable({
+            "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json" },
+            "order": [[2, "asc"]]  // เรียงตามวันนัด
+        });
+    });
+</script>
+{% endblock %}

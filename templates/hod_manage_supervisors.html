@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการสิทธิ์อาจารย์นิเทศ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    .form-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-user-shield text-danger"></i> จัดการสิทธิ์อาจารย์นิเทศ</h2>
+            <nav class="mt-2">
+                <a href="/hod/dashboard" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-list-ul me-1"></i> รายการรออนุมัติ
+                </a>
+                <a href="/hod/manage-supervisors" class="btn btn-primary btn-sm active shadow-sm">
+                    <i class="fas fa-user-check me-1"></i> จัดการสิทธิ์อาจารย์
+                </a>
+                <a href="{{ url_for('lecturer.claim_page') }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-hand-pointer me-1"></i> เลือกนักศึกษาเข้าความดูแล
+                </a>
+                <a href="/hod/appointments" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-history me-1"></i> ประวัติการนัด
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <table id="supervisorTable" class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ชื่อ-นามสกุล</th>
+                        <th>อีเมล</th>
+                        <th>บทบาทปัจจุบัน</th>
+                        <th class="text-center">สิทธิ์การนิเทศ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in lecturers %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ l.name }}</div>
+                        </td>
+                        <td>{{ l.email }}</td>
+                        <td>
+                            <span class="badge bg-secondary badge-role">{{ l.role|upper }}</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="form-check form-switch d-flex justify-content-center">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="switch-{{ l._id }}" 
+                                       {% if l.can_supervise %}checked{% endif %}
+                                       onchange="toggleSupervisor('{{ l._id }}', this.checked)">
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#supervisorTable').DataTable({
+        language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' },
+        pageLength: 10
+    });
+});
+
+function toggleSupervisor(userId, isChecked) {
+    fetch('/hod/api/toggle-supervisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, can_supervise: isChecked })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+        } else {
+            // หาก Error ให้สลับปุ่มคืน
+            document.getElementById(`switch-${userId}`).checked = !isChecked;
+            showAlert('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(err => {
+        document.getElementById(`switch-${userId}`).checked = !isChecked;
+        showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'danger');
+    });
+}
+
+function showAlert(message, type) {
+    const container = document.getElementById('alertContainer');
+    const alertId = 'alert-' + Date.now();
+    const alertHtml = `
+        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show shadow border-0" role="alert" style="min-width: 300px;">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+            <strong>${message}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', alertHtml);
+    setTimeout(() => {
+        $(`#${alertId}`).alert('close');
+    }, 3000);
+}
+</script>
+{% endblock %}

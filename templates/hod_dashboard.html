@@ -1,21 +1,45 @@
 {% extends "base.html" %}
 
-{% block title %}HOD Dashboard - อนุมัติเอกสาร{% endblock %}
+{% block title %}HOD Dashboard - รายการรออนุมัติ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    /* ปรับแต่งเล็กน้อยเพื่อให้ดูสะอาดตาเหมือนในตัวอย่าง */
+    .dataTables_wrapper .dataTables_filter { margin-bottom: 15px; }
+    .table thead th { cursor: pointer; }
+    .table thead th:hover { background-color: #f8f9fa; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-chalkboard-teacher text-primary"></i> รายการรออนุมัติ (HOD)</h2>
-        <span class="badge bg-warning text-dark fs-6">{{ documents|length }} รายการ</span>
+        <div>
+            <h2><i class="fas fa-chalkboard-teacher text-primary"></i> รายการรออนุมัติ (HOD)</h2>
+            <div class="mt-2">
+                <a href="/hod/dashboard" class="btn btn-primary btn-sm active shadow-sm">
+                    <i class="fas fa-list-ul me-1"></i> รายการรออนุมัติ
+                </a>
+                <a href="/hod/manage-supervisors" class="btn btn-outline-primary btn-sm shadow-sm">
+                    <i class="fas fa-user-shield me-1"></i> จัดการสิทธิ์อาจารย์นิเทศ
+                </a>
+                <a href="/lecturer/claim-students" class="btn btn-outline-success btn-sm shadow-sm">
+                    <i class="fas fa-hand-pointer me-1"></i> เลือกนักศึกษาเข้าความดูแล
+                </a>
+                <a href="/hod/appointments" class="btn btn-outline-primary btn-sm shadow-sm">
+                    <i class="fas fa-history me-1"></i> ประวัติการนัด
+                </a>
+            </div>
+        </div>
+        <span class="badge bg-warning text-dark fs-6 shadow-sm">{{ documents|length }} รายการ</span>
     </div>
 
-    {% if documents %}
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4"> <div class="table-responsive">
+                <table id="hodTable" class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
                             <th class="ps-4">นักศึกษา</th>
@@ -26,7 +50,6 @@
                     </thead>
                     <tbody>
                         {% for doc in documents %}
-                        {# ดึงข้อมูลและตรวจสอบ None #}
                         {% set data = doc.get('ocr_extracted_data', {}) %}
                         {% set student = data.get('student', {}) if data else {} %}
                         {% set place = data.get('internship_place', {}) if data else {} %}
@@ -49,7 +72,7 @@
                             </td>
                             <td>
                                 <small class="d-block">
-                                    <i class="far fa-calendar-check"></i> 
+                                    <i class="far fa-calendar-check text-success"></i> 
                                     {% if period.get('start_date') %}
                                         {{ period.start_date.strftime('%d/%m/%Y') if period.start_date is not string else period.start_date }}
                                     {% else %}
@@ -73,8 +96,8 @@
                                     <button class="btn btn-sm btn-success" onclick="approveDoc('{{ doc._id }}')" title="อนุมัติ">
                                         <i class="fas fa-check"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="rejectDoc('{{ doc._id }}')" title="ส่งคืนแก้ไข">
-                                        <i class="fas fa-times"></i>
+                                    <button class="btn btn-sm btn-danger" onclick="rejectDoc('{{ doc._id }}')" title="ปฏิเสธและลบข้อมูล">
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </div>
                             </td>
@@ -85,21 +108,13 @@
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="text-center py-5 bg-white rounded shadow-sm">
-        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
-        <h4 class="text-muted">ไม่มีเอกสารรออนุมัติ</h4>
-        <p class="text-secondary">คุณจัดการงานทั้งหมดเรียบร้อยแล้ว!</p>
-    </div>
-    {% endif %}
 </div>
 
-<!-- Modal สำหรับดูรายละเอียด -->
 <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable" style="height: 90vh;">
-        <div class="modal-content h-100">
+        <div class="modal-content h-100 border-0 shadow-lg">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="fas fa-file-alt"></i> รายละเอียดเอกสาร</h5>
+                <h5 class="modal-title"><i class="fas fa-file-alt me-2"></i> รายละเอียดเอกสาร</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0" id="modalContent">
@@ -115,10 +130,34 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
 <script>
     let detailModal;
+    let dataTable;
 
-    document.addEventListener('DOMContentLoaded', function() {
+    $(document).ready(function() {
+        // ⭐ 4. สั่งให้ตารางกลายเป็น Smart Table (DataTables)
+        dataTable = $('#hodTable').DataTable({
+            "pageLength": 10, // แสดง 10 รายการต่อหน้า
+            "order": [],      // ปิดการเรียงลำดับอัตโนมัติในตอนเริ่ม เพื่อให้ใช้ลำดับจาก Python
+            "language": {
+                "lengthMenu": "แสดง _MENU_ รายการต่อหน้า",
+                "search": "ค้นหาด่วน:",
+                "zeroRecords": "ไม่พบข้อมูลที่ค้นหา",
+                "info": "กำลังแสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                "infoEmpty": "ไม่มีข้อมูลแสดง",
+                "paginate": {
+                    "first": "หน้าแรก",
+                    "last": "หน้าสุดท้าย",
+                    "next": "ถัดไป",
+                    "previous": "ก่อนหน้า"
+                }
+            }
+        });
+
         const modalEl = document.getElementById('detailModal');
         if(modalEl) {
             detailModal = new bootstrap.Modal(modalEl);
@@ -130,128 +169,56 @@
         
         fetch(`/hod/approve/${id}`, { 
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
         })
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                const row = document.getElementById(`row-${id}`);
-                if(row) {
-                    row.classList.add('table-success');
-                    setTimeout(() => {
-                        row.remove();
-                        const remainingRows = document.querySelectorAll('tbody tr');
-                        if(remainingRows.length === 0) {
-                            window.location.reload();
-                        } else {
-                            // อัปเดตจำนวนรายการ
-                            const badge = document.querySelector('.badge');
-                            if(badge) {
-                                badge.textContent = `${remainingRows.length} รายการ`;
-                            }
-                        }
-                    }, 500);
-                }
-                showAlert('อนุมัติเอกสารเรียบร้อย', 'success');
+                // ⭐ อัปเดตตารางโดยลบแถวผ่าน DataTables Instance เพื่อไม่ให้การแบ่งหน้าเสีย
+                dataTable.row($(`#row-${id}`)).remove().draw();
+                showAlert('อนุมัติเรียบร้อย นักศึกษาสามารถถูกเลือกโดยอาจารย์นิเทศได้แล้ว', 'success');
             } else {
-                showAlert('Error: ' + (data.message || 'ไม่สามารถอนุมัติได้'), 'danger');
+                showAlert('Error: ' + data.message, 'danger');
             }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            showAlert('เชื่อมต่อ Server ไม่ได้', 'danger');
         });
     }
 
     function rejectDoc(id) {
-        const reason = prompt("ระบุเหตุผลที่ไม่อนุมัติ:");
-        if(reason === null || reason.trim() === '') {
-            showAlert('กรุณาระบุเหตุผล', 'warning');
-            return;
-        }
+        if(!confirm('ยืนยันการลบเอกสารนี้ออกจากระบบ?')) return;
 
         fetch(`/hod/reject/${id}`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ reason: reason.trim() })
+            headers: {'Content-Type': 'application/json'}
         })
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                const row = document.getElementById(`row-${id}`);
-                if(row) {
-                    row.classList.add('table-danger');
-                    setTimeout(() => {
-                        row.remove();
-                        const remainingRows = document.querySelectorAll('tbody tr');
-                        if(remainingRows.length === 0) {
-                            window.location.reload();
-                        } else {
-                            // อัปเดตจำนวนรายการ
-                            const badge = document.querySelector('.badge');
-                            if(badge) {
-                                badge.textContent = `${remainingRows.length} รายการ`;
-                            }
-                        }
-                    }, 500);
-                }
-                showAlert('ส่งคืนเอกสารเรียบร้อย', 'warning');
+                dataTable.row($(`#row-${id}`)).remove().draw();
+                showAlert('ลบเอกสารเรียบร้อยแล้ว', 'warning');
             } else {
-                showAlert('Error: ' + (data.message || 'ไม่สามารถส่งคืนได้'), 'danger');
+                showAlert('Error: ' + data.message, 'danger');
             }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            showAlert('เชื่อมต่อ Server ไม่ได้', 'danger');
         });
     }
     
     function viewDoc(id) {
         const modalBody = document.getElementById('modalContent');
-        modalBody.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center h-100">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `;
-        
+        modalBody.innerHTML = `<iframe src="/document/${id}" style="width:100%; height:100%; border:none;"></iframe>`;
         if(detailModal) detailModal.show();
-        
-        // โหลดเนื้อหาหลังจากเปิด modal
-        setTimeout(() => {
-            modalBody.innerHTML = `<iframe src="/document/${id}" style="width:100%; height:100%; border:none;" onload="this.style.opacity=1" style="opacity:0;transition:opacity 0.3s"></iframe>`;
-        }, 100);
     }
 
     function showAlert(message, type) {
         const container = document.getElementById('alertContainer');
-        const iconMap = {
-            'success': 'check-circle',
-            'danger': 'exclamation-circle',
-            'warning': 'exclamation-triangle',
-            'info': 'info-circle'
-        };
-        
         const alertId = 'alert-' + Date.now();
         const alertHtml = `
             <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show shadow" role="alert" style="min-width: 300px;">
-                <i class="fas fa-${iconMap[type] || 'info-circle'} me-2"></i>
                 <strong>${message}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', alertHtml);
-        
-        // Auto close after 3 seconds
-        setTimeout(() => {
-            const alertElement = document.getElementById(alertId);
-            if (alertElement) {
-                const bsAlert = new bootstrap.Alert(alertElement);
-                bsAlert.close();
-            }
+        setTimeout(() => { 
+            $(`#${alertId}`).alert('close');
         }, 3000);
     }
 </script>

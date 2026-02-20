@@ -174,12 +174,22 @@
 let reviewModal;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // แก้ไข: ป้องกัน Error กรณี Modal ยังไม่ถูกโหลด
     const modalEl = document.getElementById('reviewModal');
     if (modalEl) {
         reviewModal = new bootstrap.Modal(modalEl);
     }
 });
+
+// ฟังก์ชันสำหรับ Reset หน้าจอทั้งหมด (เพิ่มส่วนนี้เพื่อให้กลับมาอัปโหลดใหม่ได้)
+function resetUploadUI() {
+    document.getElementById('uploadForm').reset(); // ล้างไฟล์ที่เลือก
+    document.getElementById('filePreview').classList.add('d-none'); // ซ่อน Preview
+    const uploadBtn = document.getElementById('uploadBtn');
+    uploadBtn.disabled = false; // ปลดล็อกปุ่ม
+    uploadBtn.innerHTML = '<i class="fas fa-magic"></i> เริ่มอัปโหลดและอ่านข้อมูล';
+    const progressContainer = document.getElementById('progressContainer');
+    progressContainer.classList.add('d-none'); // ซ่อนแถบ Progress
+}
 
 // ส่วน Preview ไฟล์
 document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -208,7 +218,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
     }
 });
 
-// ส่วนส่งไฟล์ไป OCR (แก้ไขบล็อก finally เพื่อให้กดรอบสองได้)
+// ส่วนส่งไฟล์ไป OCR
 document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const uploadBtn = document.getElementById('uploadBtn');
@@ -219,7 +229,6 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
 
     if (!file) return;
 
-    // เตรียมสถานะ UI
     uploadBtn.disabled = true;
     progressContainer.classList.remove('d-none');
     progressBar.style.width = '30%';
@@ -241,22 +250,18 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
             setTimeout(() => showReviewModal(result.data), 500);
         } else {
             showAlert(result.message, 'danger');
+            resetUploadUI(); // ปลดล็อกเมื่อเกิด Error
         }
     } catch (error) {
         showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message, 'danger');
-    } finally {
-        // ⭐ จุดสำคัญที่สุด: ปลดล็อคปุ่มเพื่อให้กดรอบสองได้
-        uploadBtn.disabled = false;
-        progressContainer.classList.add('d-none');
+        resetUploadUI(); // ปลดล็อกเมื่อเกิด Error
     }
 });
 
-// ฟังก์ชันแสดงข้อมูลใน Modal (แก้ตาม IDs ที่ตั้งไว้)
 function showReviewModal(data) {
     const ocr = data.ocr_data;
     const safeGet = (obj, key) => (obj && obj[key] ? obj[key] : '');
 
-    // ข้อมูลพื้นฐาน
     document.getElementById('filename').value = data.filename || '';
     document.getElementById('file_path').value = data.file_path || '';
     document.getElementById('file_type').value = data.file_type || '';
@@ -284,14 +289,14 @@ function showReviewModal(data) {
     }
     document.getElementById('student_count').value = ocr.student_count || 1;
 
-    // 3. นักศึกษา (รวมชื่อ-นามสกุล)
+    // 3. นักศึกษา
     const std = ocr.student || {};
-    document.getElementById('student_name').value = `${std.first_name || ''} ${std.last_name || ''}`.strip();
+    document.getElementById('student_name').value = `${std.first_name || ''} ${std.last_name || ''}`.trim();
     document.getElementById('student_major').value = std.major || '';
 
-    // 4. ผู้ประสานงาน (รวมชื่อ-นามสกุล)
+    // 4. พี่เลี้ยง
     const mnt = ocr.mentor || {};
-    document.getElementById('mentor_name').value = `${mnt.first_name || ''} ${mnt.last_name || ''}`.strip();
+    document.getElementById('mentor_name').value = `${mnt.first_name || ''} ${mnt.last_name || ''}`.trim();
     document.getElementById('coordinator_position').value = mnt.position || '';
     document.getElementById('coordinator_department').value = mnt.department || '';
     document.getElementById('coordinator_phone').value = mnt.phone || '';
@@ -301,17 +306,13 @@ function showReviewModal(data) {
     reviewModal.show();
 }
 
-// ฟังก์ชันช่วยจัดการ Space
-String.prototype.strip = function() { return this.replace(/^\s+|\s+$/g, ''); };
-
-// ส่วนบันทึกข้อมูล (Save)
+// ส่วนบันทึกข้อมูล (Save) - แก้ไขจุดนี้เพื่อล้างบัคอัปโหลดซ้ำไม่ได้
 document.getElementById('saveBtn').addEventListener('click', async function() {
     const btn = this;
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> บันทึก...';
 
-    // แยกชื่อ-นามสกุลแบบง่าย
     const split = (val) => {
         const p = val.trim().split(/\s+/);
         return { first: p[0] || '', last: p.slice(1).join(' ') || '' };
@@ -360,15 +361,21 @@ document.getElementById('saveBtn').addEventListener('click', async function() {
         const res = await response.json();
         if (res.success) {
             reviewModal.hide();
-            showAlert('บันทึกสำเร็จ! กำลังย้ายหน้า...', 'success');
+            showAlert('บันทึกสำเร็จ!', 'success');
+            
+            // ⭐ จุดแก้ไข: Reset ทุอย่างเพื่อให้หน้าเว็บกลับมาพร้อมอัปโหลดใหม่
+            resetUploadUI(); 
+
+            // หากไม่ต้องการย้ายหน้าไปที่ประวัติ ให้คอมเมนต์บรรทัดนี้ออก
             setTimeout(() => { window.location.href = '/documents'; }, 1500);
         } else {
             showAlert(res.message, 'danger');
+            btn.disabled = false;
         }
     } catch (e) {
         showAlert('Save Error: ' + e.message, 'danger');
-    } finally {
         btn.disabled = false;
+    } finally {
         btn.innerHTML = originalText;
     }
 });

@@ -98,6 +98,9 @@
         if (data.role === 'hod') {
             // ไปหน้าอนุมัติเอกสาร
             window.location.href = '/hod/dashboard'; 
+        } else if (data.role === 'lecturer') {
+            // ไปหน้า Dashboard อาจารย์นิเทศ
+            window.location.href = '/lecturer/dashboard';
         } else {
             // ไปหน้าอัปโหลดเอกสาร (นักศึกษา)
             window.location.href = '/upload'; 

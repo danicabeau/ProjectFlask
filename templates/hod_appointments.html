@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}ประวัติการนัดหมายนิเทศ (HOD){% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    .badge-scheduled   { background-color: #0dcaf0!important; color: #b42929!important; }
+    .badge-assigned    { background-color: #6c757d!important; color: #3672a9!important; }
+    .badge-in_progress { background-color: #0d6efd!important; color: #a8b429!important; }
+    .badge-completed   { background-color: #198754!important; color: #07a563!important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-history text-primary"></i> ประวัติการนัดหมายนิเทศ (HOD)</h2>
+            <div class="mt-2">
+                <a href="/hod/dashboard" class="btn btn-outline-primary btn-sm shadow-sm">
+                    <i class="fas fa-list-ul me-1"></i> รายการรออนุมัติ
+                </a>
+                <a href="/hod/manage-supervisors" class="btn btn-outline-primary btn-sm shadow-sm">
+                    <i class="fas fa-user-shield me-1"></i> จัดการสิทธิ์อาจารย์นิเทศ
+                </a>
+                <a href="/lecturer/claim-students" class="btn btn-outline-success btn-sm shadow-sm">
+                    <i class="fas fa-hand-pointer me-1"></i> เลือกนักศึกษาเข้าความดูแล
+                </a>
+                <a href="/hod/appointments" class="btn btn-primary btn-sm active shadow-sm">
+                    <i class="fas fa-history me-1"></i> ประวัติการนัด
+                </a>
+            </div>
+        </div>
+        <span class="badge bg-primary fs-6 shadow-sm">{{ history|length }} รายการ</span>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <table id="appointmentTable" class="table table-hover align-middle">
+                <thead class="bg-light">
+                    <tr>
+                        <th>นักศึกษา</th>
+                        <th>บริษัท</th>
+                        <th>อาจารย์ผู้นิเทศ</th>
+                        <th>พี่เลี้ยง</th>
+                        <th>วันนัด</th>
+                        <th>เวลา</th>
+                        <th>สถานะ</th>
+                        <th class="text-center">ลิงก์ประเมิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in history %}
+                    <tr>
+                        <td>
+                            <strong>{{ h.student.name or '-' }}</strong>
+                            {% if h.student.email %}
+                                <br><small class="text-muted">{{ h.student.email }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ h.company.company_name or '-' }}
+                            {% if h.company.province %}
+                                <br><small class="text-muted">{{ h.company.province }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ h.appointment.lecturer_name or '-' }}
+                            {% if h.appointment.lecturer_phone %}
+                                <br><small class="text-muted"><i class="fas fa-phone fa-xs me-1"></i>{{ h.appointment.lecturer_phone }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ h.mentor.name or '-' }}
+                            {% if h.mentor.phone %}
+                                <br><small class="text-muted"><i class="fas fa-phone fa-xs me-1"></i>{{ h.mentor.phone }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ h.appointment.date or '-' }}</td>
+                        <td>
+                            {% if h.appointment.time %}
+                                {{ h.appointment.time }} น.
+                            {% else %}-{% endif %}
+                        </td>
+                        <td>
+                            {% set status = h.status %}
+                            {% if status == 'scheduled' %}
+                                <span class="">นัดแล้ว</span>
+                            {% elif status == 'in_progress' %}
+                                <span class="">กำลังดำเนินการ</span>
+                            {% elif status == 'completed' %}
+                                <span class="">เสร็จสิ้น</span>
+                            {% else %}
+                                <span class="">มอบหมายแล้ว</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if h.appointment.eval_link %}
+                                <a href="{{ h.appointment.eval_link }}" target="_blank"
+                                   class="btn btn-sm btn-outline-success rounded-pill px-3">
+                                    <i class="fas fa-external-link-alt me-1"></i> เปิด
+                                </a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#appointmentTable').DataTable({
+            "language": {
+                "lengthMenu": "แสดง _MENU_ รายการต่อหน้า",
+                "search": "ค้นหา:",
+                "zeroRecords": "ไม่พบข้อมูล",
+                "info": "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                "infoEmpty": "ไม่มีข้อมูลแสดง",
+                "paginate": { "next": "ถัดไป", "previous": "ก่อนหน้า" }
+            },
+            "order": [[4, "desc"]]  // เรียงตามวันนัด ล่าสุดก่อน
+        });
+    });
+</script>
+{% endblock %}

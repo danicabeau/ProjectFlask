@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}มอบหมายอาจารย์นิเทศ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-user-check text-success"></i> มอบหมายอาจารย์นิเทศ</h2>
+            <div class="mt-2">
+                <a href="/hod/dashboard" class="btn btn-outline-primary btn-sm">รายการรออนุมัติ</a>
+                <a href="/hod/assign-advisor" class="btn btn-primary btn-sm active">มอบหมายอาจารย์นิเทศ</a>
+                <a href="/hod/appointments" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-history me-1"></i> ประวัติการนัด
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="assignTable" class="table table-hover align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>นักศึกษา</th>
+                            <th>สถานประกอบการ</th>
+                            <th>เลือกอาจารย์นิเทศ</th>
+                            <th class="text-center">การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students %}
+                        <tr id="row-{{ s._id }}">
+                            <td>
+                                <div class="fw-bold">{{ s.ocr_extracted_data.student.first_name }} {{ s.ocr_extracted_data.student.last_name }}</div>
+                                <small class="text-muted">{{ s.ocr_extracted_data.student.major }}</small>
+                            </td>
+                            <td>
+                                <div>{{ s.ocr_extracted_data.internship_place.company_name }}</div>
+                                <small class="text-muted"><i class="fas fa-map-marker-alt"></i> {{ s.ocr_extracted_data.internship_place.province }}</small>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" id="lecturer-{{ s._id }}">
+                                    <option value="">-- เลือกอาจารย์ที่จะไปนิเทศ --</option>
+                                    {% for l in lecturers %}
+                                    <option value="{{ l._id }}">{{ l.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-success btn-sm px-3" onclick="saveAssignment('{{ s._id }}')">
+                                    <i class="fas fa-save me-1"></i> บันทึกการมอบหมาย
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#assignTable').DataTable({
+        language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' }
+    });
+});
+
+function saveAssignment(docId) {
+    const lecturerId = document.getElementById(`lecturer-${docId}`).value;
+    if(!lecturerId) {
+        return showAlert('กรุณาเลือกอาจารย์ก่อนบันทึก', 'warning');
+    }
+
+    fetch('/hod/api/assign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ doc_id: docId, lecturer_id: lecturerId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            showAlert(data.message, 'success');
+            // สามารถเลือกให้แถวหายไปหรือเปลี่ยนสีเพื่อบอกว่ามอบหมายแล้วได้ที่นี่
+        } else {
+            showAlert(data.message, 'danger');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'danger');
+    });
+}
+
+function showAlert(message, type) {
+    const container = document.getElementById('alertContainer');
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show shadow" role="alert">
+            <strong>${message}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    container.innerHTML = alertHtml;
+    setTimeout(() => { container.innerHTML = ''; }, 3000);
+}
+</script>
+{% endblock %}
