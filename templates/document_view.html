@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายละเอียดเอกสาร - ระบบฝึกงาน</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f7f6; font-size: 0.9rem; color: #333; }
+        .document-container { max-width: 900px; margin: 20px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .section-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 15px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; }
+        .field-label { font-size: 0.75rem; color: #888; margin-bottom: 2px; font-weight: 600; }
+        .field-value { font-size: 0.95rem; font-weight: 500; padding: 8px 12px; background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; min-height: 38px; }
+        .field-value.empty { color: #ccc; font-style: italic; }
+        .admin-actions { background: #fff; border-bottom: 2px solid #eee; padding: 15px 0; margin-bottom: 25px; position: sticky; top: 0; z-index: 100; }
+    </style>
+</head>
+<body>
+
+<div class="container document-container">
+    
+    {% if session.get('role') in ['hod', 'lecturer'] %}
+    <div class="admin-actions d-flex justify-content-between align-items-center">
+        <div class="fw-bold text-dark"><i class="fas fa-user-shield me-2 text-primary"></i>ส่วนจัดการสำหรับอาจารย์</div>
+        <div>
+            <button onclick="updateStatus('{{ doc._id }}', 'approved')" class="btn btn-success btn-sm me-2 shadow-sm">
+                <i class="fas fa-check-circle me-1"></i> อนุมัติเอกสาร
+            </button>
+            <button onclick="updateStatus('{{ doc._id }}', 'rejected')" class="btn btn-outline-danger btn-sm shadow-sm">
+                <i class="fas fa-times-circle me-1"></i> ปฏิเสธ/ให้แก้ไข
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div>
+            <h5 class="fw-bold mb-1 text-dark">
+                <i class="fas fa-file-invoice me-2 text-primary"></i>รายละเอียดข้อมูลจาก OCR
+            </h5>
+            <p class="text-muted small mb-0">
+                รหัสอ้างอิง: <span class="badge bg-light text-dark border">{{ doc._id }}</span> 
+                | วันที่อัปโหลด: {{ doc.created_at.strftime('%d/%m/%Y %H:%M') if doc.created_at else '-' }}
+            </p>
+        </div>
+        <div class="text-end">
+            {% set status = doc.get('status', 'pending') %}
+            {% if status == 'pending' %}
+                <span class="badge bg-warning text-dark p-2"><i class="fas fa-hourglass-half me-1"></i>รอการตรวจสอบ</span>
+            {% elif status == 'approved' %}
+                <span class="badge bg-success p-2"><i class="fas fa-check-double me-1"></i>ผ่านการอนุมัติ</span>
+            {% else %}
+                <span class="badge bg-danger p-2"><i class="fas fa-exclamation-triangle me-1"></i>ต้องแก้ไข</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <div class="section-title bg-primary bg-opacity-10 text-primary">
+            <i class="fas fa-user-graduate me-2"></i>1. ข้อมูลนักศึกษา
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="field-label">ชื่อ-นามสกุล (ไทย)</div>
+                <div class="field-value">{{ info.get('name_th') or 'ไม่ระบุ' }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="field-label">รหัสนักศึกษา</div>
+                <div class="field-value text-primary fw-bold">{{ info.get('student_id') or '-' }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="field-label">ชั้นปี</div>
+                <div class="field-value">{{ info.get('year') or '-' }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="field-label">เกรดเฉลี่ย (GPAX)</div>
+                <div class="field-value">{{ info.get('gpax') or '-' }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="field-label">เบอร์โทรศัพท์</div>
+                <div class="field-value">{{ info.get('phone') or '-' }}</div>
+            </div>
+            <div class="col-12">
+                <div class="field-label">ที่อยู่ตามทะเบียนบ้าน</div>
+                <div class="field-value">{{ info.get('address_reg') or 'ไม่ระบุ' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <div class="section-title bg-success bg-opacity-10 text-success">
+            <i class="fas fa-users me-2"></i>2. ข้อมูลบิดา-มารดา
+        </div>
+        {% set father = fam.get('father', {}) %}
+        {% set mother = fam.get('mother', {}) %}
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="field-label">ชื่อบิดา</div>
+                <div class="field-value">{{ father.get('name') or '-' }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="field-label">เบอร์โทรบิดา</div>
+                <div class="field-value">{{ father.get('phone') or '-' }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="field-label">ชื่อมารดา</div>
+                <div class="field-value">{{ mother.get('name') or '-' }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="field-label">เบอร์โทรมารดา</div>
+                <div class="field-value">{{ mother.get('phone') or '-' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <div class="section-title bg-danger bg-opacity-10 text-danger">
+            <i class="fas fa-ambulance me-2"></i>3. ติดต่อกรณีฉุกเฉิน
+        </div>
+        <div class="row g-3">
+            <div class="col-md-8">
+                <div class="field-label">ชื่อผู้ติดต่อ</div>
+                <div class="field-value fw-bold">{{ emg.get('name') or '-' }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="field-label">เบอร์โทรฉุกเฉิน</div>
+                <div class="field-value text-danger fw-bold">{{ emg.get('phone') or '-' }}</div>
+            </div>
+        </div>
+    </div>
+    {% if not is_app_form %}
+<div class="mb-3">
+    <div class="section-title bg-info bg-opacity-10 text-info">
+        <i class="fas fa-building me-2"></i>ข้อมูลสถานประกอบการ (จากใบตอบรับ)
+    </div>
+    <div class="row g-2">
+        <div class="col-12">
+            <div class="field-label">ชื่อบริษัท</div>
+            <div class="field-value fw-bold text-success">{{ emg.get('company_name') or 'ไม่ระบุ' }}</div>
+        </div>
+        <div class="col-12">
+            <div class="field-label">ที่อยู่บริษัท</div>
+            <div class="field-value small">{{ emg.get('address') or '-' }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+    <div class="mt-5 pt-4 border-top text-center">
+        <a href="/document/file/{{ doc._id }}" target="_blank" class="btn btn-dark px-4 shadow-sm">
+            <i class="fas fa-file-pdf me-2"></i> ดูไฟล์ PDF ต้นฉบับ
+        </a>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script>
+function updateStatus(docId, newStatus) {
+    const confirmMsg = newStatus === 'approved' ? 'ยืนยันการอนุมัติเอกสารนี้?' : 'ยืนยันการปฏิเสธเอกสารนี้?';
+    if (!confirm(confirmMsg)) return;
+
+    // ส่งค่าไปที่ Backend API (คุณต้องมี Route สำหรับจัดการสถานะด้วย)
+    fetch('/update-document-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: docId, status: newStatus })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            alert('อัปเดตสถานะสำเร็จ');
+            location.reload();
+        } else {
+            alert('เกิดข้อผิดพลาด: ' + data.message);
+        }
+    })
+    .catch(err => alert('Error: ' + err));
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}สถานประกอบการ - ระบบจัดการการฝึกงาน{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-11">
+
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fs-6">
+                    <i class="fas fa-building me-2"></i> สถานประกอบการที่เคยรับนักศึกษาฝึกงาน
+                </h5>
+                <span class="badge bg-warning text-dark">{{ companies|length }} แห่ง</span>
+            </div>
+            <div class="card-body p-4">
+                <table id="companiesTable" class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px" class="ps-3">#</th>
+                            <th style="min-width:200px">ชื่อบริษัท</th>
+                            <th style="min-width:200px">ที่อยู่</th>
+                            <th style="width:130px">ประเภทธุรกิจ</th>
+                            <th style="width:120px">เบอร์โทร</th>
+                            <th style="width:180px">Email</th>
+                            <th style="width:80px" class="text-center">นศ. ที่ไป</th>
+                            <th style="width:60px" class="text-center">รายละเอียด</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in companies %}
+                        <tr>
+                            <td class="ps-3">{{ loop.index }}</td>
+                            <td>
+                                <div class="fw-bold">{{ c.company_name or '-' }}</div>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ c.address or '-' }}</small>
+                            </td>
+                            <td>
+                                {% if c.business_type %}
+                                <span class="badge bg-info text-dark rounded-pill px-2">{{ c.business_type }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td><small>{{ c.phone or '-' }}</small></td>
+                            <td><small>{{ c.email or '-' }}</small></td>
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill px-3">{{ c.student_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <a href="/companies/{{ c.company_name | urlencode }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-users"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function () {
+    $('#companiesTable').DataTable({
+        language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' },
+        order: [[6, 'desc']],
+        pageLength: 10,
+        columnDefs: [{ orderable: false, targets: [7] }]
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}ข้อมูลส่วนตัว - ระบบจัดการการฝึกงาน{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+
+        <div id="alertBox" class="alert d-none border-0 shadow-sm mb-3" role="alert"></div>
+
+        <!-- ข้อมูล Account -->
+        <div class="card shadow-lg border-0 rounded-3 mb-4">
+            <div class="card-header bg-dark text-white py-3 d-flex align-items-center gap-2">
+                <i class="fas fa-user-cog"></i>
+                <h5 class="mb-0 fs-6">ข้อมูล Account</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">ชื่อ</label>
+                        <input type="text" class="form-control" id="first_name"
+                               value="{{ user.profile.get('first_name', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">นามสกุล</label>
+                        <input type="text" class="form-control" id="last_name"
+                               value="{{ user.profile.get('last_name', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">ชื่อที่แสดงในระบบ</label>
+                        <input type="text" class="form-control" id="display_name" value="{{ user.name }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">เบอร์โทรศัพท์</label>
+                        <input type="text" class="form-control" id="phone"
+                               value="{{ user.profile.get('phone', '') }}" placeholder="0xx-xxxxxxx">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small text-muted fw-bold">อีเมล</label>
+                        <input type="text" class="form-control bg-light" value="{{ user.email }}" disabled>
+                        <small class="text-muted">ไม่สามารถเปลี่ยนอีเมลได้</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if session.get('role') == 'student' and app %}
+
+        <!-- ข้อมูลนักศึกษา -->
+        <div class="card shadow-lg border-0 rounded-3 mb-4">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fs-6"><i class="fas fa-user-graduate me-2"></i>ข้อมูลนักศึกษา</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">ชื่อ-นามสกุล (ไทย)</label>
+                        <input type="text" class="form-control" id="std_name_th"
+                               value="{{ app.ocr_data.student_info.get('name_th', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">Name-Surname (EN)</label>
+                        <input type="text" class="form-control" id="std_name_en"
+                               value="{{ app.ocr_data.student_info.get('name_en', '') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted fw-bold">รหัสนักศึกษา</label>
+                        <input type="text" class="form-control" id="std_student_id"
+                               value="{{ app.ocr_data.student_info.get('student_id', '') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted fw-bold">GPAX</label>
+                        <input type="text" class="form-control" id="std_gpax"
+                               value="{{ app.ocr_data.student_info.get('gpax', '') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted fw-bold">ชั้นปี</label>
+                        <input type="text" class="form-control" id="std_year"
+                               value="{{ app.ocr_data.student_info.get('year', '') }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small text-muted fw-bold">ที่อยู่ตามทะเบียนบ้าน</label>
+                        <input type="text" class="form-control" id="std_address"
+                               value="{{ app.ocr_data.student_info.get('address_reg', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">เบอร์โทรศัพท์</label>
+                        <input type="text" class="form-control" id="std_phone"
+                               value="{{ app.ocr_data.student_info.get('phone', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">สถานะทหาร</label>
+                        <input type="text" class="form-control" id="std_military"
+                               value="{{ app.ocr_data.student_info.get('military_status', '') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ข้อมูลครอบครัว -->
+        <div class="card shadow-lg border-0 rounded-3 mb-4">
+            <div class="card-header bg-success text-white py-3">
+                <h5 class="mb-0 fs-6"><i class="fas fa-users me-2"></i>ข้อมูลครอบครัว</h5>
+            </div>
+            <div class="card-body p-4">
+                {% set father = app.ocr_data.family_info.get('father', {}) %}
+                {% set mother = app.ocr_data.family_info.get('mother', {}) %}
+                <div class="row g-3">
+                    <div class="col-12"><small class="fw-bold text-success">บิดา</small></div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">ชื่อ-นามสกุลบิดา</label>
+                        <input type="text" class="form-control" id="fam_f_name"
+                               value="{{ father.get('name', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">อายุ</label>
+                        <input type="text" class="form-control" id="fam_f_age"
+                               value="{{ father.get('age', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">เบอร์โทร</label>
+                        <input type="text" class="form-control" id="fam_f_phone"
+                               value="{{ father.get('phone', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">อาชีพ</label>
+                        <input type="text" class="form-control" id="fam_f_job"
+                               value="{{ father.get('job', '') }}">
+                    </div>
+
+                    <div class="col-12 mt-2"><small class="fw-bold text-success">มารดา</small></div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">ชื่อ-นามสกุลมารดา</label>
+                        <input type="text" class="form-control" id="fam_m_name"
+                               value="{{ mother.get('name', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">อายุ</label>
+                        <input type="text" class="form-control" id="fam_m_age"
+                               value="{{ mother.get('age', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">เบอร์โทร</label>
+                        <input type="text" class="form-control" id="fam_m_phone"
+                               value="{{ mother.get('phone', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">อาชีพ</label>
+                        <input type="text" class="form-control" id="fam_m_job"
+                               value="{{ mother.get('job', '') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- บุคคลติดต่อฉุกเฉิน -->
+        <div class="card shadow-lg border-0 rounded-3 mb-4">
+            <div class="card-header bg-danger text-white py-3">
+                <h5 class="mb-0 fs-6"><i class="fas fa-phone-alt me-2"></i>บุคคลติดต่อกรณีฉุกเฉิน</h5>
+            </div>
+            <div class="card-body p-4">
+                {% set emg = app.ocr_data.get('emergency', {}) %}
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <label class="form-label small text-muted fw-bold">ชื่อผู้ติดต่อ</label>
+                        <input type="text" class="form-control" id="emg_name"
+                               value="{{ emg.get('name', '') }}">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted fw-bold">เบอร์โทร</label>
+                        <input type="text" class="form-control" id="emg_phone"
+                               value="{{ emg.get('phone', '') }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small text-muted fw-bold">ที่อยู่</label>
+                        <input type="text" class="form-control" id="emg_address"
+                               value="{{ emg.get('address', '') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ข้อมูลพี่เลี้ยง (ถ้ามีใบตอบรับ) -->
+        {% if internship %}
+        <div class="card shadow-lg border-0 rounded-3 mb-4">
+            <div class="card-header bg-warning text-dark py-3">
+                <h5 class="mb-0 fs-6"><i class="fas fa-building me-2"></i>ข้อมูลพี่เลี้ยง / สถานประกอบการ</h5>
+            </div>
+            <div class="card-body p-4">
+                {% set mentor = internship.ocr_extracted_data.get('mentor', {}) %}
+                {% set place  = internship.ocr_extracted_data.get('internship_place', {}) %}
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label small text-muted fw-bold">ชื่อบริษัท</label>
+                        <input type="text" class="form-control" id="place_name"
+                               value="{{ place.get('company_name', '') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted fw-bold">เบอร์โทรบริษัท</label>
+                        <input type="text" class="form-control" id="place_phone"
+                               value="{{ place.get('phone', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">ชื่อพี่เลี้ยง</label>
+                        <input type="text" class="form-control" id="mentor_name"
+                               value="{{ mentor.get('first_name', '') }} {{ mentor.get('last_name', '') }}".strip()>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-bold">เบอร์โทรพี่เลี้ยง</label>
+                        <input type="text" class="form-control" id="mentor_phone"
+                               value="{{ mentor.get('phone', '') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% endif %}
+
+        <!-- ปุ่ม Save -->
+        <div class="d-flex justify-content-end gap-2 mb-5"
+             id="saveBar"
+             data-is-student="{{ 'true' if session.get('role') == 'student' and app else 'false' }}"
+             data-has-internship="{{ 'true' if internship else 'false' }}">
+            <a href="javascript:history.back()" class="btn btn-secondary px-4">ยกเลิก</a>
+            <button class="btn btn-primary px-4 fw-bold" onclick="saveProfile()">
+                <i class="fas fa-save me-1"></i> บันทึกทั้งหมด
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function saveProfile() {
+    const saveBar      = document.getElementById('saveBar');
+    const isStudent    = saveBar.dataset.isStudent === 'true';
+    const hasInternship = saveBar.dataset.hasInternship === 'true';
+
+    const payload = {
+        name:       document.getElementById('display_name').value.trim(),
+        first_name: document.getElementById('first_name').value.trim(),
+        last_name:  document.getElementById('last_name').value.trim(),
+        phone:      document.getElementById('phone').value.trim(),
+    };
+
+    if (isStudent) {
+        payload.student_info = {
+            name_th:         document.getElementById('std_name_th').value,
+            name_en:         document.getElementById('std_name_en').value,
+            student_id:      document.getElementById('std_student_id').value,
+            gpax:            document.getElementById('std_gpax').value,
+            year:            document.getElementById('std_year').value,
+            address_reg:     document.getElementById('std_address').value,
+            phone:           document.getElementById('std_phone').value,
+            military_status: document.getElementById('std_military').value,
+        };
+        payload.family_info = {
+            father: { name: document.getElementById('fam_f_name').value, age: document.getElementById('fam_f_age').value, phone: document.getElementById('fam_f_phone').value, job: document.getElementById('fam_f_job').value },
+            mother: { name: document.getElementById('fam_m_name').value, age: document.getElementById('fam_m_age').value, phone: document.getElementById('fam_m_phone').value, job: document.getElementById('fam_m_job').value },
+        };
+        payload.emergency = {
+            name:    document.getElementById('emg_name').value,
+            phone:   document.getElementById('emg_phone').value,
+            address: document.getElementById('emg_address').value,
+        };
+    }
+
+    if (hasInternship) {
+        const mentorFull = document.getElementById('mentor_name').value.trim().split(' ');
+        payload.mentor = {
+            first_name: mentorFull[0] || '',
+            last_name:  mentorFull.slice(1).join(' ') || '',
+            phone:      document.getElementById('mentor_phone').value,
+        };
+        payload.internship_place = {
+            company_name: document.getElementById('place_name').value,
+            phone:        document.getElementById('place_phone').value,
+        };
+    }
+
+    try {
+        const res  = await fetch('/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        const box  = document.getElementById('alertBox');
+        if (data.success) {
+            box.className = 'alert alert-success border-0 shadow-sm mb-3';
+            box.innerHTML = '<i class="fas fa-check-circle me-2"></i> บันทึกข้อมูลเรียบร้อยแล้ว';
+            box.classList.remove('d-none');
+            setTimeout(() => box.classList.add('d-none'), 3000);
+        } else {
+            box.className = 'alert alert-danger border-0 shadow-sm mb-3';
+            box.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i> ${data.message}`;
+            box.classList.remove('d-none');
+        }
+    } catch (e) { alert('เกิดข้อผิดพลาด'); }
+}
+</script>
+{% endblock %}

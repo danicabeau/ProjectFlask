@@ -1,103 +1,436 @@
 {% extends "base.html" %}
-
 {% block title %}HOD Dashboard - รายการรออนุมัติ{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    /* ปรับแต่งเล็กน้อยเพื่อให้ดูสะอาดตาเหมือนในตัวอย่าง */
-    .dataTables_wrapper .dataTables_filter { margin-bottom: 15px; }
-    .table thead th { cursor: pointer; }
-    .table thead th:hover { background-color: #f8f9fa; }
+:root {
+    --hod-primary: #4F46E5;
+    --hod-primary-light: #818CF8;
+    --hod-primary-bg: #EEF2FF;
+    --hod-success: #059669;
+    --hod-success-light: #D1FAE5;
+    --hod-danger: #DC2626;
+    --hod-danger-light: #FEE2E2;
+    --hod-warning: #D97706;
+    --hod-warning-light: #FEF3C7;
+    --hod-gray-50: #F9FAFB;
+    --hod-gray-100: #F3F4F6;
+    --hod-gray-200: #E5E7EB;
+    --hod-gray-300: #D1D5DB;
+    --hod-gray-400: #9CA3AF;
+    --hod-gray-500: #6B7280;
+    --hod-gray-600: #4B5563;
+    --hod-gray-700: #374151;
+    --hod-gray-800: #1F2937;
+    --hod-gray-900: #111827;
+    --hod-radius: 16px;
+    --hod-radius-sm: 10px;
+    --hod-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --hod-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --hod-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+}
+
+.hod-page {
+    font-family: 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif;
+    background: var(--hod-gray-50);
+    min-height: 100vh;
+    padding-bottom: 3rem;
+}
+
+/* ── Page Header ── */
+.hod-header {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%);
+    border-radius: 0 0 24px 24px;
+    padding: 2rem 2.5rem 1.5rem;
+    margin: -1rem -12px 2rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+.hod-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.hod-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: 10%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.hod-header h4 {
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    position: relative;
+    z-index: 1;
+}
+.hod-header p {
+    opacity: 0.85;
+    font-size: 0.9rem;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+.hod-badge-count {
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Navigation Tabs ── */
+.hod-nav {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.75rem;
+    padding: 0.35rem;
+    background: white;
+    border-radius: 14px;
+    box-shadow: var(--hod-shadow);
+    border: 1px solid var(--hod-gray-200);
+}
+.hod-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: var(--hod-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--hod-gray-600);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.hod-nav a:hover {
+    background: var(--hod-gray-100);
+    color: var(--hod-gray-800);
+}
+.hod-nav a.active {
+    background: var(--hod-primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.35);
+}
+.hod-nav a i {
+    font-size: 0.8rem;
+}
+
+/* ── Card Container ── */
+.hod-card {
+    background: white;
+    border-radius: var(--hod-radius);
+    box-shadow: var(--hod-shadow);
+    border: 1px solid var(--hod-gray-200);
+    overflow: hidden;
+}
+.hod-card-body {
+    padding: 1.5rem;
+}
+
+/* ── Table Styling ── */
+.hod-card .table {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+.hod-card .table thead th {
+    background: var(--hod-gray-50);
+    border-bottom: 2px solid var(--hod-gray-200);
+    color: var(--hod-gray-500);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.85rem 1rem;
+    white-space: nowrap;
+}
+.hod-card .table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--hod-gray-100);
+    vertical-align: middle;
+}
+.hod-card .table tbody tr:hover {
+    background: var(--hod-primary-bg);
+}
+.hod-card .table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ── Student Name Style ── */
+.student-name {
+    font-weight: 600;
+    color: var(--hod-gray-800);
+    font-size: 0.9rem;
+}
+.student-name-en {
+    color: var(--hod-gray-400);
+    font-size: 0.78rem;
+    font-weight: 400;
+}
+
+/* ── Badge GPAX ── */
+.gpax-badge {
+    background: var(--hod-success-light);
+    color: var(--hod-success);
+    font-weight: 600;
+    padding: 0.3rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+/* ── Action Buttons ── */
+.hod-actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+.hod-actions .btn {
+    border-radius: 10px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+}
+.btn-hod-view {
+    background: var(--hod-primary-bg);
+    color: var(--hod-primary);
+}
+.btn-hod-view:hover {
+    background: var(--hod-primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+}
+.btn-hod-approve {
+    background: var(--hod-success-light);
+    color: var(--hod-success);
+}
+.btn-hod-approve:hover {
+    background: var(--hod-success);
+    color: white;
+    box-shadow: 0 2px 8px rgba(5,150,105,0.3);
+}
+.btn-hod-reject {
+    background: var(--hod-danger-light);
+    color: var(--hod-danger);
+}
+.btn-hod-reject:hover {
+    background: var(--hod-danger);
+    color: white;
+    box-shadow: 0 2px 8px rgba(220,38,38,0.3);
+}
+
+/* ── Empty State ── */
+.hod-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+.hod-empty-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--hod-success-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+}
+.hod-empty-icon i {
+    font-size: 2rem;
+    color: var(--hod-success);
+}
+.hod-empty h5 {
+    font-weight: 600;
+    color: var(--hod-gray-700);
+    margin-bottom: 0.35rem;
+}
+.hod-empty p {
+    color: var(--hod-gray-400);
+    font-size: 0.875rem;
+}
+
+/* ── DataTables Override ── */
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--hod-gray-300);
+    border-radius: var(--hod-radius-sm);
+    padding: 0.45rem 0.85rem;
+    font-size: 0.85rem;
+    transition: border-color 0.2s;
+}
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--hod-primary-light);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+    outline: none;
+}
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid var(--hod-gray-300);
+    border-radius: 8px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+}
+.dataTables_wrapper .dataTables_info {
+    font-size: 0.8rem;
+    color: var(--hod-gray-500);
+    padding-top: 1rem;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 8px !important;
+    border: none !important;
+    font-size: 0.8rem;
+    margin: 0 2px;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--hod-primary) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(79,70,229,0.3);
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--hod-primary-bg) !important;
+    color: var(--hod-primary) !important;
+    border: none !important;
+}
+
+/* ── Toast Alert ── */
+.hod-toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1055;
+    min-width: 320px;
+    border-radius: var(--hod-radius-sm);
+    padding: 1rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: var(--hod-shadow-lg);
+    border: none;
+    animation: slideIn 0.3s ease;
+}
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Modal Override ── */
+.modal-content {
+    border-radius: var(--hod-radius) !important;
+    border: none !important;
+    overflow: hidden;
+}
+.hod-modal-header {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%);
+    color: white;
+    padding: 1.15rem 1.5rem;
+    border: none;
+}
+.hod-modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
+<div class="hod-page">
+    <div id="alertContainer"></div>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2><i class="fas fa-chalkboard-teacher text-primary"></i> รายการรออนุมัติ (HOD)</h2>
-            <div class="mt-2">
-                <a href="/hod/dashboard" class="btn btn-primary btn-sm active shadow-sm">
-                    <i class="fas fa-list-ul me-1"></i> รายการรออนุมัติ
-                </a>
-                <a href="/hod/manage-supervisors" class="btn btn-outline-primary btn-sm shadow-sm">
-                    <i class="fas fa-user-shield me-1"></i> จัดการสิทธิ์อาจารย์นิเทศ
-                </a>
-                <a href="/lecturer/claim-students" class="btn btn-outline-success btn-sm shadow-sm">
-                    <i class="fas fa-hand-pointer me-1"></i> เลือกนักศึกษาเข้าความดูแล
-                </a>
-                <a href="/hod/appointments" class="btn btn-outline-primary btn-sm shadow-sm">
-                    <i class="fas fa-history me-1"></i> ประวัติการนัด
-                </a>
+    <!-- Header -->
+    <div class="hod-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4><i class="fas fa-clipboard-list me-2"></i>รายการใบสมัครรออนุมัติ</h4>
+                <p>ตรวจสอบและอนุมัติใบสมัครฝึกประสบการณ์วิชาชีพของนักศึกษา</p>
             </div>
+            <span class="hod-badge-count">
+                <i class="fas fa-file-alt me-1"></i> {{ documents|length }} รายการ
+            </span>
         </div>
-        <span class="badge bg-warning text-dark fs-6 shadow-sm">{{ documents|length }} รายการ</span>
     </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-4"> <div class="table-responsive">
-                <table id="hodTable" class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+    <!-- Navigation -->
+    <nav class="hod-nav">
+        <a href="/hod/dashboard" class="active">
+            <i class="fas fa-clipboard-list"></i> รายการรออนุมัติ
+        </a>
+        <a href="/hod/manage-supervisors">
+            <i class="fas fa-user-shield"></i> จัดการสิทธิ์อาจารย์นิเทศ
+        </a>
+        <a href="/lecturer/claim-students">
+            <i class="fas fa-hand-pointer"></i> เลือกนักศึกษาเข้าความดูแล
+        </a>
+        <a href="/hod/appointments">
+            <i class="fas fa-history"></i> ประวัติการนัด
+        </a>
+    </nav>
+
+    <!-- Table Card -->
+    <div class="hod-card">
+        <div class="hod-card-body">
+            {% if documents %}
+            <div class="table-responsive">
+                <table id="hodTable" class="table align-middle mb-0">
+                    <thead>
                         <tr>
-                            <th class="ps-4">นักศึกษา</th>
-                            <th>บริษัท/สถานประกอบการ</th>
-                            <th>ช่วงเวลาฝึกงาน</th>
-                            <th class="text-end pe-4">จัดการ</th>
+                            <th class="ps-3">นักศึกษา</th>
+                            <th>รหัสนักศึกษา</th>
+                            <th>GPAX</th>
+                            <th>วันที่อัปโหลด</th>
+                            <th class="text-end pe-3">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for doc in documents %}
-                        {% set data = doc.get('ocr_extracted_data', {}) %}
-                        {% set student = data.get('student', {}) if data else {} %}
-                        {% set place = data.get('internship_place', {}) if data else {} %}
-                        {% set period = data.get('internship_period', {}) if data else {} %}
-                        
+                        {% set info = doc.student_info %}
                         <tr id="row-{{ doc._id }}">
-                            <td class="ps-4">
-                                <div class="fw-bold text-primary">
-                                    {{ student.get('first_name', '-') }} {{ student.get('last_name', '') }}
-                                </div>
-                                <small class="text-muted">
-                                    <i class="fas fa-graduation-cap"></i> {{ student.get('major', '-') }}
-                                </small>
+                            <td class="ps-3">
+                                <div class="student-name">{{ info.get('name_th', '-') }}</div>
+                                <div class="student-name-en">{{ info.get('name_en', '') }}</div>
                             </td>
                             <td>
-                                <div class="fw-bold">{{ place.get('company_name', 'ไม่ระบุชื่อบริษัท') }}</div>
-                                <small class="text-muted">
-                                    <i class="fas fa-map-marker-alt"></i> {{ place.get('province', '-') }}
-                                </small>
+                                <span style="font-weight:500;color:var(--hod-gray-700);">{{ info.get('student_id', '-') }}</span>
                             </td>
                             <td>
-                                <small class="d-block">
-                                    <i class="far fa-calendar-check text-success"></i> 
-                                    {% if period.get('start_date') %}
-                                        {{ period.start_date.strftime('%d/%m/%Y') if period.start_date is not string else period.start_date }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </small>
-                                <small class="d-block text-muted">
-                                    ถึง 
-                                    {% if period.get('end_date') %}
-                                        {{ period.end_date.strftime('%d/%m/%Y') if period.end_date is not string else period.end_date }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </small>
+                                {% if info.get('gpax') %}
+                                    <span class="gpax-badge">{{ info.gpax }}</span>
+                                {% else %}<span style="color:var(--hod-gray-400);">-</span>{% endif %}
                             </td>
-                            <td class="text-end pe-4">
-                                <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewDoc('{{ doc._id }}')" title="ดูรายละเอียด">
-                                        <i class="fas fa-eye"></i>
+                            <td>
+                                <span style="color:var(--hod-gray-500);font-size:0.835rem;">
+                                {% if doc.created_at %}
+                                    {{ doc.created_at.strftime('%d/%m/%Y %H:%M') if doc.created_at is not string else doc.created_at }}
+                                {% else %}-{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="hod-actions">
+                                    <button class="btn btn-hod-view" onclick="viewDoc('{{ doc._id }}')" title="ดูใบสมัคร">
+                                        <i class="fas fa-eye"></i> ดู
                                     </button>
-                                    <button class="btn btn-sm btn-success" onclick="approveDoc('{{ doc._id }}')" title="อนุมัติ">
-                                        <i class="fas fa-check"></i>
+                                    <button class="btn btn-hod-approve" onclick="approveDoc('{{ doc._id }}')" title="อนุมัติ">
+                                        <i class="fas fa-check"></i> อนุมัติ
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="rejectDoc('{{ doc._id }}')" title="ปฏิเสธและลบข้อมูล">
-                                        <i class="fas fa-trash-alt"></i>
+                                    <button class="btn btn-hod-reject" onclick="rejectDoc('{{ doc._id }}')" title="ปฏิเสธ">
+                                        <i class="fas fa-times"></i> ปฏิเสธ
                                     </button>
                                 </div>
                             </td>
@@ -106,22 +439,30 @@
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="hod-empty">
+                <div class="hod-empty-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h5>ไม่มีใบสมัครรออนุมัติ</h5>
+                <p>นักศึกษาทุกคนได้รับการอนุมัติแล้ว</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
+<!-- Modal -->
 <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable" style="height: 90vh;">
-        <div class="modal-content h-100 border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="fas fa-file-alt me-2"></i> รายละเอียดเอกสาร</h5>
+        <div class="modal-content h-100">
+            <div class="hod-modal-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-file-alt me-2"></i>ใบสมัครโครงการฝึกประสบการณ์วิชาชีพ</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0" id="modalContent">
                 <div class="d-flex justify-content-center align-items-center h-100">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
+                    <div class="spinner-border text-primary" role="status"></div>
                 </div>
             </div>
         </div>
@@ -133,93 +474,78 @@
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
 <script>
-    let detailModal;
-    let dataTable;
+let detailModal, dataTable;
 
-    $(document).ready(function() {
-        // ⭐ 4. สั่งให้ตารางกลายเป็น Smart Table (DataTables)
+$(document).ready(function () {
+    if ($('#hodTable').length > 0) {
         dataTable = $('#hodTable').DataTable({
-            "pageLength": 10, // แสดง 10 รายการต่อหน้า
-            "order": [],      // ปิดการเรียงลำดับอัตโนมัติในตอนเริ่ม เพื่อให้ใช้ลำดับจาก Python
-            "language": {
-                "lengthMenu": "แสดง _MENU_ รายการต่อหน้า",
-                "search": "ค้นหาด่วน:",
-                "zeroRecords": "ไม่พบข้อมูลที่ค้นหา",
-                "info": "กำลังแสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                "infoEmpty": "ไม่มีข้อมูลแสดง",
-                "paginate": {
-                    "first": "หน้าแรก",
-                    "last": "หน้าสุดท้าย",
-                    "next": "ถัดไป",
-                    "previous": "ก่อนหน้า"
-                }
+            pageLength: 10,
+            order: [],
+            language: {
+                lengthMenu: "แสดง _MENU_ รายการต่อหน้า",
+                search: "ค้นหา:",
+                zeroRecords: "ไม่พบข้อมูล",
+                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                infoEmpty: "ไม่มีข้อมูล",
+                paginate: { next: "ถัดไป", previous: "ก่อนหน้า" }
             }
         });
+    }
+    detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+});
 
-        const modalEl = document.getElementById('detailModal');
-        if(modalEl) {
-            detailModal = new bootstrap.Modal(modalEl);
+function approveDoc(id) {
+    if (!confirm('ยืนยันการอนุมัติใบสมัครนี้?')) return;
+    fetch(`/hod/approve/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            dataTable.row($(`#row-${id}`)).remove().draw();
+            showAlert('อนุมัติเรียบร้อย', 'success');
+        } else {
+            showAlert('Error: ' + data.message, 'danger');
         }
     });
+}
 
-    function approveDoc(id) {
-        if(!confirm('ยืนยันการอนุมัติเอกสารนี้?')) return;
-        
-        fetch(`/hod/approve/${id}`, { 
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                // ⭐ อัปเดตตารางโดยลบแถวผ่าน DataTables Instance เพื่อไม่ให้การแบ่งหน้าเสีย
-                dataTable.row($(`#row-${id}`)).remove().draw();
-                showAlert('อนุมัติเรียบร้อย นักศึกษาสามารถถูกเลือกโดยอาจารย์นิเทศได้แล้ว', 'success');
-            } else {
-                showAlert('Error: ' + data.message, 'danger');
-            }
-        });
-    }
+function rejectDoc(id) {
+    if (!confirm('ยืนยันการลบใบสมัครนี้?')) return;
+    fetch(`/hod/reject/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            dataTable.row($(`#row-${id}`)).remove().draw();
+            showAlert('ลบเรียบร้อย', 'warning');
+        } else {
+            showAlert('Error: ' + data.message, 'danger');
+        }
+    });
+}
 
-    function rejectDoc(id) {
-        if(!confirm('ยืนยันการลบเอกสารนี้ออกจากระบบ?')) return;
+function viewDoc(id) {
+    document.getElementById('modalContent').innerHTML = `<iframe src="/document/${id}" style="width:100%;height:100%;border:none;"></iframe>`;
+    detailModal.show();
+}
 
-        fetch(`/hod/reject/${id}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'}
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                dataTable.row($(`#row-${id}`)).remove().draw();
-                showAlert('ลบเอกสารเรียบร้อยแล้ว', 'warning');
-            } else {
-                showAlert('Error: ' + data.message, 'danger');
-            }
-        });
-    }
-    
-    function viewDoc(id) {
-        const modalBody = document.getElementById('modalContent');
-        modalBody.innerHTML = `<iframe src="/document/${id}" style="width:100%; height:100%; border:none;"></iframe>`;
-        if(detailModal) detailModal.show();
-    }
-
-    function showAlert(message, type) {
-        const container = document.getElementById('alertContainer');
-        const alertId = 'alert-' + Date.now();
-        const alertHtml = `
-            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show shadow" role="alert" style="min-width: 300px;">
-                <strong>${message}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', alertHtml);
-        setTimeout(() => { 
-            $(`#${alertId}`).alert('close');
-        }, 3000);
-    }
+function showAlert(message, type) {
+    const container = document.getElementById('alertContainer');
+    const alertId = 'alert-' + Date.now();
+    const icons = { success: 'check-circle', danger: 'exclamation-circle', warning: 'exclamation-triangle' };
+    const colors = {
+        success: 'background:var(--hod-success-light);color:var(--hod-success);',
+        danger: 'background:var(--hod-danger-light);color:var(--hod-danger);',
+        warning: 'background:var(--hod-warning-light);color:var(--hod-warning);'
+    };
+    container.insertAdjacentHTML('beforeend', `
+        <div id="${alertId}" class="hod-toast" style="${colors[type] || colors.success}" role="alert">
+            <i class="fas fa-${icons[type] || 'info-circle'} me-2"></i>
+            <strong>${message}</strong>
+        </div>`);
+    setTimeout(() => {
+        const el = document.getElementById(alertId);
+        if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(40px)'; setTimeout(() => el.remove(), 300); }
+    }, 3000);
+}
 </script>
 {% endblock %}

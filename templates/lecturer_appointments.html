@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}ประวัติการนัดของฉัน{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --hod-primary: #4F46E5; --hod-primary-light: #818CF8; --hod-primary-bg: #EEF2FF;
+    --hod-success: #059669; --hod-success-light: #D1FAE5;
+    --hod-danger: #DC2626; --hod-danger-light: #FEE2E2;
+    --hod-warning: #D97706; --hod-warning-light: #FEF3C7;
+    --hod-info: #0891B2; --hod-info-light: #CFFAFE;
+    --hod-gray-50: #F9FAFB; --hod-gray-100: #F3F4F6; --hod-gray-200: #E5E7EB;
+    --hod-gray-300: #D1D5DB; --hod-gray-400: #9CA3AF; --hod-gray-500: #6B7280;
+    --hod-gray-600: #4B5563; --hod-gray-700: #374151; --hod-gray-800: #1F2937;
+    --hod-radius: 16px; --hod-radius-sm: 10px;
+    --hod-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --hod-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+}
+.hod-page { font-family: 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif; background: var(--hod-gray-50); min-height: 100vh; padding-bottom: 3rem; }
+.hod-header { background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%); border-radius: 0 0 24px 24px; padding: 2rem 2.5rem 1.5rem; margin: -1rem -12px 2rem; color: white; position: relative; overflow: hidden; }
+.hod-header::before { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%; }
+.hod-header h4 { font-weight: 700; font-size: 1.5rem; margin-bottom: 0.25rem; position: relative; z-index: 1; }
+.hod-header p { opacity: 0.85; font-size: 0.9rem; margin: 0; position: relative; z-index: 1; }
+.hod-badge-count { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; font-weight: 600; font-size: 0.85rem; padding: 0.5rem 1.25rem; border-radius: 50px; position: relative; z-index: 1; }
+
+.hod-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.75rem; padding: 0.35rem; background: white; border-radius: 14px; box-shadow: var(--hod-shadow); border: 1px solid var(--hod-gray-200); }
+.hod-nav a { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.15rem; border-radius: var(--hod-radius-sm); font-size: 0.85rem; font-weight: 500; text-decoration: none; color: var(--hod-gray-600); transition: all 0.2s ease; white-space: nowrap; }
+.hod-nav a:hover { background: var(--hod-gray-100); color: var(--hod-gray-800); }
+.hod-nav a.active { background: var(--hod-primary); color: white; box-shadow: 0 2px 8px rgba(79,70,229,0.35); }
+.hod-nav a i { font-size: 0.8rem; }
+
+.hod-card { background: white; border-radius: var(--hod-radius); box-shadow: var(--hod-shadow); border: 1px solid var(--hod-gray-200); overflow: hidden; }
+.hod-card-body { padding: 1.5rem; }
+.hod-card .table { margin-bottom: 0; font-size: 0.875rem; }
+.hod-card .table thead th { background: var(--hod-gray-50); border-bottom: 2px solid var(--hod-gray-200); color: var(--hod-gray-500); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.85rem 1rem; white-space: nowrap; }
+.hod-card .table tbody td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--hod-gray-100); vertical-align: middle; }
+.hod-card .table tbody tr:hover { background: var(--hod-primary-bg); }
+.hod-card .table tbody tr:last-child td { border-bottom: none; }
+
+.status-badge { font-weight: 600; font-size: 0.75rem; padding: 0.3rem 0.85rem; border-radius: 8px; white-space: nowrap; }
+.status-scheduled { background: var(--hod-info-light); color: var(--hod-info); }
+.status-in-progress { background: var(--hod-primary-bg); color: var(--hod-primary); }
+.status-completed { background: var(--hod-success-light); color: var(--hod-success); }
+.status-cancelled { background: var(--hod-danger-light); color: var(--hod-danger); }
+.status-assigned { background: var(--hod-gray-100); color: var(--hod-gray-600); }
+.contact-phone { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--hod-gray-400); font-size: 0.78rem; }
+
+.btn-eval { background: var(--hod-success-light); color: var(--hod-success); border: none; border-radius: 8px; padding: 0.35rem 0.85rem; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.2s ease; text-decoration: none; }
+.btn-eval:hover { background: var(--hod-success); color: white; }
+.btn-edit { background: var(--hod-warning-light); color: var(--hod-warning); border: none; border-radius: 8px; padding: 0.35rem 0.85rem; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.2s ease; cursor: pointer; }
+.btn-edit:hover { background: var(--hod-warning); color: white; }
+.btn-complete-appt { background: var(--hod-success-light); color: var(--hod-success); border: none; border-radius: 8px; padding: 0.35rem 0.85rem; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.2s ease; cursor: pointer; }
+.btn-complete-appt:hover { background: var(--hod-success); color: white; }
+.btn-cancel-appt { background: var(--hod-danger-light); color: var(--hod-danger); border: none; border-radius: 8px; padding: 0.35rem 0.85rem; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.2s ease; cursor: pointer; }
+.btn-cancel-appt:hover { background: var(--hod-danger); color: white; }
+.action-btns { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: nowrap; }
+
+.hod-empty { text-align: center; padding: 4rem 2rem; }
+.hod-empty-icon { width: 80px; height: 80px; background: var(--hod-gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+.hod-empty-icon i { font-size: 2rem; color: var(--hod-gray-400); }
+.hod-empty h5 { font-weight: 600; color: var(--hod-gray-700); margin-bottom: 0.35rem; }
+
+.dataTables_wrapper .dataTables_filter input { border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.45rem 0.85rem; font-size: 0.85rem; }
+.dataTables_wrapper .dataTables_filter input:focus { border-color: var(--hod-primary-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); outline: none; }
+.dataTables_wrapper .dataTables_length select { border: 1px solid var(--hod-gray-300); border-radius: 8px; padding: 0.35rem 0.5rem; font-size: 0.85rem; }
+.dataTables_wrapper .dataTables_info { font-size: 0.8rem; color: var(--hod-gray-500); padding-top: 1rem; }
+.dataTables_wrapper .dataTables_paginate .paginate_button { border-radius: 8px !important; border: none !important; font-size: 0.8rem; margin: 0 2px; }
+.dataTables_wrapper .dataTables_paginate .paginate_button.current { background: var(--hod-primary) !important; color: white !important; border: none !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover { background: var(--hod-primary-bg) !important; color: var(--hod-primary) !important; border: none !important; }
+
+/* Modal */
+#editModal { overflow-y: auto !important; }
+#editModal .modal-dialog { margin: 1.75rem auto; max-width: 700px; }
+#editModal .modal-content { border-radius: var(--hod-radius) !important; border: none !important; box-shadow: var(--hod-shadow-lg); }
+.hod-modal-header { background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%); color: white; padding: 1.15rem 1.5rem; border: none; }
+.hod-modal-header .btn-close { filter: brightness(0) invert(1); }
+#editModal .modal-body { padding: 1.5rem; max-height: 65vh; overflow-y: auto; }
+.form-section { display: flex; align-items: center; gap: 0.5rem; padding-bottom: 0.6rem; margin-bottom: 1rem; border-bottom: 2px solid var(--hod-gray-200); font-weight: 600; font-size: 0.9rem; color: var(--hod-primary); }
+.form-section-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; background: var(--hod-primary-bg); color: var(--hod-primary); }
+.section-mentor .form-section { color: var(--hod-success); }
+.section-mentor .form-section-icon { background: var(--hod-success-light); color: var(--hod-success); }
+.section-schedule .form-section { color: var(--hod-warning); }
+.section-schedule .form-section-icon { background: var(--hod-warning-light); color: var(--hod-warning); }
+.hod-form-label { font-size: 0.8rem; font-weight: 600; color: var(--hod-gray-600); margin-bottom: 0.3rem; }
+.hod-form-input { border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.5rem 0.85rem; font-size: 0.875rem; color: var(--hod-gray-800); transition: all 0.2s ease; width: 100%; }
+.hod-form-input:focus { border-color: var(--hod-primary-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); outline: none; }
+.hod-form-input[readonly] { background: var(--hod-gray-50); color: var(--hod-gray-500); }
+.hod-modal-footer { background: var(--hod-gray-50); border-top: 1px solid var(--hod-gray-200); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.5rem; }
+.btn-modal-cancel { background: var(--hod-gray-100); color: var(--hod-gray-600); border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+.btn-modal-cancel:hover { background: var(--hod-gray-200); }
+.btn-modal-submit { background: var(--hod-primary); color: white; border: none; border-radius: var(--hod-radius-sm); padding: 0.5rem 1.5rem; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; transition: all 0.2s ease; }
+.btn-modal-submit:hover { background: #4338CA; color: white; }
+.btn-modal-submit:disabled { opacity: 0.6; }
+
+.hod-toast { position: fixed; top: 24px; right: 24px; z-index: 1055; min-width: 320px; border-radius: var(--hod-radius-sm); padding: 1rem 1.25rem; font-size: 0.875rem; font-weight: 500; box-shadow: var(--hod-shadow-lg); border: none; animation: slideIn 0.3s ease; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hod-page">
+    <div id="alertContainer"></div>
+
+    <div class="hod-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4><i class="fas fa-history me-2"></i>ประวัติการนัดของฉัน</h4>
+                <p>ดูและจัดการการนัดหมายนิเทศนักศึกษาของคุณ</p>
+            </div>
+            <span class="hod-badge-count"><i class="fas fa-calendar-check me-1"></i> {{ history|length }} รายการ</span>
+        </div>
+    </div>
+
+    <nav class="hod-nav">
+        <a href="/lecturer/dashboard"><i class="fas fa-users"></i> นักศึกษาของฉัน</a>
+        <a href="/lecturer/claim-students"><i class="fas fa-hand-pointer"></i> เรียกนักศึกษาใหม่</a>
+        <a href="/lecturer/my-appointments" class="active"><i class="fas fa-history"></i> ประวัติการนัดของฉัน</a>
+    </nav>
+
+    <div class="hod-card">
+        <div class="hod-card-body">
+            {% if history %}
+            <div class="table-responsive">
+                <table id="appointmentTable" class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">นักศึกษา</th>
+                            <th>บริษัท</th>
+                            <th>พี่เลี้ยง</th>
+                            <th>วันนัด</th>
+                            <th>เวลา</th>
+                            <th>สถานะ</th>
+                            <th class="text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in history %}
+                        <tr>
+                            <td class="ps-3">
+                                <div style="font-weight:600;color:var(--hod-gray-800);">{{ h.student.name or '-' }}</div>
+                                {% if h.student.email %}<div style="color:var(--hod-gray-400);font-size:0.78rem;">{{ h.student.email }}</div>{% endif %}
+                            </td>
+                            <td>
+                                <div style="font-weight:500;color:var(--hod-gray-700);">{{ h.company.company_name or '-' }}</div>
+                            </td>
+                            <td>
+                                <div style="font-weight:500;color:var(--hod-gray-700);">{{ h.mentor.name or '-' }}</div>
+                                {% if h.mentor.phone %}<div class="contact-phone"><i class="fas fa-phone"></i> {{ h.mentor.phone }}</div>{% endif %}
+                            </td>
+                            <td><span style="font-weight:500;color:var(--hod-gray-700);font-size:0.85rem;">{{ h.appointment.date or '-' }}</span></td>
+                            <td><span style="color:var(--hod-gray-600);font-size:0.85rem;">{{ h.appointment.time ~ ' น.' if h.appointment.time else '-' }}</span></td>
+                            <td>
+                                {% set status = h.status %}
+                                {% if status == 'scheduled' %}<span class="status-badge status-scheduled">นัดแล้ว</span>
+                                {% elif status == 'in_progress' %}<span class="status-badge status-in-progress">กำลังดำเนินการ</span>
+                                {% elif status == 'completed' %}<span class="status-badge status-completed">เสร็จสิ้น</span>
+                                {% elif status == 'cancelled' %}<span class="status-badge status-cancelled">ยกเลิกแล้ว</span>
+                                {% else %}<span class="status-badge status-assigned">มอบหมายแล้ว</span>{% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="action-btns">
+                                    {% if h.status not in ['cancelled', 'completed'] %}
+                                    <button class="btn-edit" onclick="openEditModal('{{ h._id }}')"
+                                            data-id="{{ h._id }}"
+                                            data-student-name="{{ h.student.name or '' }}"
+                                            data-student-email="{{ h.student.email or '' }}"
+                                            data-student-phone="{{ h.student.phone or '' }}"
+                                            data-mentor-name="{{ h.mentor.name or '' }}"
+                                            data-mentor-email="{{ h.mentor.email or '' }}"
+                                            data-mentor-phone="{{ h.mentor.phone or '' }}"
+                                            data-lecturer-name="{{ h.appointment.lecturer_name or '' }}"
+                                            data-lecturer-phone="{{ h.appointment.lecturer_phone or '' }}"
+                                            data-eval-link="{{ h.appointment.eval_link or '' }}"
+                                            data-date="{{ h.appointment.date or '' }}"
+                                            data-time="{{ h.appointment.time or '' }}">
+                                        <i class="fas fa-pen"></i> แก้ไข
+                                    </button>
+                                    <button class="btn-complete-appt" onclick="completeAppointment('{{ h._id }}', `{{ h.student.name or '' }}`)">
+                                        <i class="fas fa-check-double"></i> สำเร็จ
+                                    </button>
+                                    <button class="btn-cancel-appt" onclick="cancelAppointment('{{ h._id }}', `{{ h.student.name or '' }}`)">
+                                        <i class="fas fa-times-circle"></i> ยกเลิก
+                                    </button>
+                                    {% endif %}
+                                    {% if h.appointment.eval_link %}
+                                        <a href="{{ h.appointment.eval_link }}" target="_blank" class="btn-eval"><i class="fas fa-external-link-alt"></i> เปิด</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="hod-empty">
+                <div class="hod-empty-icon"><i class="fas fa-calendar-times"></i></div>
+                <h5>ยังไม่มีประวัติการนัดหมาย</h5>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="hod-modal-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-pen me-2"></i>แก้ไขการนัดหมาย</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit_id">
+                <div class="section-student mb-4">
+                    <div class="form-section"><div class="form-section-icon"><i class="fas fa-user-graduate"></i></div> ข้อมูลนักศึกษา</div>
+                    <div class="row g-3">
+                        <div class="col-md-12"><label class="hod-form-label">ชื่อนักศึกษา</label><input type="text" class="hod-form-input" id="edit_s_name" readonly></div>
+                        <div class="col-md-6"><label class="hod-form-label">อีเมล</label><input type="email" class="hod-form-input" id="edit_s_email"></div>
+                        <div class="col-md-6"><label class="hod-form-label">เบอร์ติดต่อ</label><input type="text" class="hod-form-input" id="edit_s_phone"></div>
+                    </div>
+                </div>
+                <div class="section-mentor mb-4">
+                    <div class="form-section"><div class="form-section-icon"><i class="fas fa-user-tie"></i></div> ข้อมูลพี่เลี้ยง</div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="hod-form-label">ชื่อพี่เลี้ยง</label><input type="text" class="hod-form-input" id="edit_m_name"></div>
+                        <div class="col-md-6"><label class="hod-form-label">เบอร์ติดต่อ</label><input type="text" class="hod-form-input" id="edit_m_phone"></div>
+                        <div class="col-md-12"><label class="hod-form-label">อีเมลพี่เลี้ยง</label><input type="email" class="hod-form-input" id="edit_m_email"></div>
+                    </div>
+                </div>
+                <div class="section-schedule">
+                    <div class="form-section"><div class="form-section-icon"><i class="fas fa-calendar-alt"></i></div> วันเวลานัดหมาย</div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="hod-form-label">อาจารย์ผู้นัด</label><input type="text" class="hod-form-input" id="edit_l_name"></div>
+                        <div class="col-md-6"><label class="hod-form-label">เบอร์อาจารย์</label><input type="text" class="hod-form-input" id="edit_l_phone"></div>
+                        <div class="col-md-12"><label class="hod-form-label">ลิงก์ประเมิน</label><input type="url" class="hod-form-input" id="edit_eval_link" placeholder="https://..."></div>
+                        <div class="col-md-6"><label class="hod-form-label">วันที่นัด</label><input type="date" class="hod-form-input" id="edit_date"></div>
+                        <div class="col-md-6"><label class="hod-form-label">เวลา</label><input type="time" class="hod-form-input" id="edit_time"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="hod-modal-footer">
+                <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn-modal-submit" id="saveEditBtn" onclick="saveEdit()"><i class="fas fa-save"></i> บันทึกและส่งอีเมลแจ้ง</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    if ($('#appointmentTable').length > 0) {
+        $('#appointmentTable').DataTable({ language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' }, order: [[3, 'desc']] });
+    }
+});
+
+function openEditModal(id) {
+    const btn = document.querySelector(`button[data-id="${id}"]`);
+    document.getElementById('edit_id').value = id;
+    document.getElementById('edit_s_name').value = btn.dataset.studentName;
+    document.getElementById('edit_s_email').value = btn.dataset.studentEmail;
+    document.getElementById('edit_s_phone').value = btn.dataset.studentPhone;
+    document.getElementById('edit_m_name').value = btn.dataset.mentorName;
+    document.getElementById('edit_m_email').value = btn.dataset.mentorEmail;
+    document.getElementById('edit_m_phone').value = btn.dataset.mentorPhone;
+    document.getElementById('edit_l_name').value = btn.dataset.lecturerName;
+    document.getElementById('edit_l_phone').value = btn.dataset.lecturerPhone;
+    document.getElementById('edit_eval_link').value = btn.dataset.evalLink;
+    document.getElementById('edit_date').value = btn.dataset.date;
+    document.getElementById('edit_time').value = btn.dataset.time;
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+function saveEdit() {
+    const btn = document.getElementById('saveEditBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+    const payload = {
+        assignment_id: document.getElementById('edit_id').value,
+        s_name: document.getElementById('edit_s_name').value, s_email: document.getElementById('edit_s_email').value, s_phone: document.getElementById('edit_s_phone').value,
+        m_name: document.getElementById('edit_m_name').value, m_email: document.getElementById('edit_m_email').value, m_phone: document.getElementById('edit_m_phone').value,
+        l_name: document.getElementById('edit_l_name').value, l_phone: document.getElementById('edit_l_phone').value,
+        eval_link: document.getElementById('edit_eval_link').value, date: document.getElementById('edit_date').value, time: document.getElementById('edit_time').value,
+    };
+    fetch('/lecturer/api/update-appointment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    .then(res => res.json()).then(data => {
+        if (data.success) { showAlert('บันทึกและส่งอีเมลแจ้งเรียบร้อยแล้ว', 'success'); setTimeout(() => location.reload(), 1500); }
+        else { showAlert('ข้อผิดพลาด: ' + data.message, 'danger'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> บันทึกและส่งอีเมลแจ้ง'; }
+    }).catch(() => { showAlert('เกิดข้อผิดพลาด', 'danger'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> บันทึกและส่งอีเมลแจ้ง'; });
+}
+
+function completeAppointment(id, name) {
+    if (!confirm(`ยืนยันว่าการนิเทศของ "${name}" เสร็จสิ้นแล้ว?`)) return;
+    fetch('/lecturer/api/complete-appointment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assignment_id: id }) })
+    .then(res => res.json()).then(data => {
+        if (data.success) { showAlert('บันทึกสถานะเสร็จสิ้นเรียบร้อย', 'success'); setTimeout(() => location.reload(), 1500); }
+        else { showAlert('ข้อผิดพลาด: ' + data.message, 'danger'); }
+    }).catch(() => showAlert('เกิดข้อผิดพลาด', 'danger'));
+}
+
+function cancelAppointment(id, name) {
+    if (!confirm(`ยืนยันการยกเลิกนัดหมายของ "${name}" หรือไม่?\n\nระบบจะส่งอีเมลแจ้งทุกฝ่าย`)) return;
+    fetch('/lecturer/api/cancel-appointment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assignment_id: id }) })
+    .then(res => res.json()).then(data => {
+        if (data.success) { showAlert('ยกเลิกนัดหมายเรียบร้อย', 'success'); setTimeout(() => location.reload(), 1500); }
+        else { showAlert('ข้อผิดพลาด: ' + data.message, 'danger'); }
+    }).catch(() => showAlert('เกิดข้อผิดพลาด', 'danger'));
+}
+
+function showAlert(message, type) {
+    const container = document.getElementById('alertContainer');
+    const alertId = 'alert-' + Date.now();
+    const icons = { success: 'check-circle', danger: 'exclamation-circle', warning: 'exclamation-triangle' };
+    const colors = { success: 'background:var(--hod-success-light);color:var(--hod-success);', danger: 'background:var(--hod-danger-light);color:var(--hod-danger);', warning: 'background:var(--hod-warning-light);color:var(--hod-warning);' };
+    container.insertAdjacentHTML('beforeend', `<div id="${alertId}" class="hod-toast" style="${colors[type]}" role="alert"><i class="fas fa-${icons[type]} me-2"></i><strong>${message}</strong></div>`);
+    setTimeout(() => { const el = document.getElementById(alertId); if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(40px)'; setTimeout(() => el.remove(), 300); } }, 3000);
+}
+</script>
+{% endblock %}

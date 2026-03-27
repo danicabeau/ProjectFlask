@@ -4,169 +4,619 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    #appointmentModal {
-        overflow-y: auto !important;
-    }
-    #appointmentModal .modal-dialog {
-        margin: 1.75rem auto;
-        min-height: unset;
-    }
-    #appointmentModal .modal-content {
-        max-height: calc(100vh - 3.5rem);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    #appointmentModal .modal-body {
-        overflow-y: scroll;
-        flex-shrink: 1;
-    }
+:root {
+    --hod-primary: #4F46E5;
+    --hod-primary-light: #818CF8;
+    --hod-primary-bg: #EEF2FF;
+    --hod-success: #059669;
+    --hod-success-light: #D1FAE5;
+    --hod-danger: #DC2626;
+    --hod-danger-light: #FEE2E2;
+    --hod-warning: #D97706;
+    --hod-warning-light: #FEF3C7;
+    --hod-info: #0891B2;
+    --hod-info-light: #CFFAFE;
+    --hod-gray-50: #F9FAFB;
+    --hod-gray-100: #F3F4F6;
+    --hod-gray-200: #E5E7EB;
+    --hod-gray-300: #D1D5DB;
+    --hod-gray-400: #9CA3AF;
+    --hod-gray-500: #6B7280;
+    --hod-gray-600: #4B5563;
+    --hod-gray-700: #374151;
+    --hod-gray-800: #1F2937;
+    --hod-gray-900: #111827;
+    --hod-radius: 16px;
+    --hod-radius-sm: 10px;
+    --hod-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --hod-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --hod-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+}
+
+.hod-page {
+    font-family: 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif;
+    background: var(--hod-gray-50);
+    min-height: 100vh;
+    padding-bottom: 3rem;
+}
+
+/* ── Page Header ── */
+.hod-header {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%);
+    border-radius: 0 0 24px 24px;
+    padding: 2rem 2.5rem 1.5rem;
+    margin: -1rem -12px 2rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+.hod-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.hod-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: 10%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.hod-header h4 {
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    position: relative;
+    z-index: 1;
+}
+.hod-header p {
+    opacity: 0.85;
+    font-size: 0.9rem;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+.hod-badge-count {
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Navigation Tabs ── */
+.hod-nav {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.75rem;
+    padding: 0.35rem;
+    background: white;
+    border-radius: 14px;
+    box-shadow: var(--hod-shadow);
+    border: 1px solid var(--hod-gray-200);
+}
+.hod-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: var(--hod-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--hod-gray-600);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.hod-nav a:hover {
+    background: var(--hod-gray-100);
+    color: var(--hod-gray-800);
+}
+.hod-nav a.active {
+    background: var(--hod-primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.35);
+}
+.hod-nav a i {
+    font-size: 0.8rem;
+}
+
+/* ── Card Container ── */
+.hod-card {
+    background: white;
+    border-radius: var(--hod-radius);
+    box-shadow: var(--hod-shadow);
+    border: 1px solid var(--hod-gray-200);
+    overflow: hidden;
+}
+.hod-card-body {
+    padding: 1.5rem;
+}
+
+/* ── Table Styling ── */
+.hod-card .table {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    width: 100% !important;
+}
+.hod-card .table thead th {
+    background: var(--hod-gray-50);
+    border-bottom: 2px solid var(--hod-gray-200);
+    color: var(--hod-gray-500);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.85rem 1rem;
+    white-space: nowrap;
+}
+.hod-card .table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--hod-gray-100);
+    vertical-align: middle;
+}
+.hod-card .table tbody tr:hover {
+    background: var(--hod-primary-bg);
+}
+.hod-card .table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ── Appointment Button ── */
+.btn-appointment {
+    background: var(--hod-info-light);
+    color: var(--hod-info);
+    border: none;
+    border-radius: var(--hod-radius-sm);
+    padding: 0.5rem 1.15rem;
+    font-size: 0.83rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+.btn-appointment:hover {
+    background: var(--hod-info);
+    color: white;
+    box-shadow: 0 2px 8px rgba(8,145,178,0.3);
+    transform: translateY(-1px);
+}
+
+/* ── Empty State ── */
+.hod-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+.hod-empty-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--hod-gray-100);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+}
+.hod-empty-icon i {
+    font-size: 2rem;
+    color: var(--hod-gray-400);
+}
+.hod-empty h5 {
+    font-weight: 600;
+    color: var(--hod-gray-700);
+    margin-bottom: 0.35rem;
+}
+.hod-empty p {
+    color: var(--hod-gray-400);
+    font-size: 0.875rem;
+}
+
+/* ── DataTables Override ── */
+.dataTables_wrapper {
+    width: 100% !important;
+}
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--hod-gray-300);
+    border-radius: var(--hod-radius-sm);
+    padding: 0.45rem 0.85rem;
+    font-size: 0.85rem;
+    transition: border-color 0.2s;
+}
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--hod-primary-light);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+    outline: none;
+}
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid var(--hod-gray-300);
+    border-radius: 8px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+}
+.dataTables_wrapper .dataTables_info {
+    font-size: 0.8rem;
+    color: var(--hod-gray-500);
+    padding-top: 1rem;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 8px !important;
+    border: none !important;
+    font-size: 0.8rem;
+    margin: 0 2px;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--hod-primary) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(79,70,229,0.3);
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--hod-primary-bg) !important;
+    color: var(--hod-primary) !important;
+    border: none !important;
+}
+
+/* ── Modal Styling ── */
+#appointmentModal {
+    overflow-y: auto !important;
+}
+#appointmentModal .modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 800px;
+}
+#appointmentModal .modal-content {
+    border-radius: var(--hod-radius) !important;
+    border: none !important;
+    box-shadow: var(--hod-shadow-lg);
+}
+.hod-modal-header {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%);
+    color: white;
+    padding: 1.15rem 1.5rem;
+    border: none;
+}
+.hod-modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
+#appointmentModal .modal-body {
+    padding: 1.5rem;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+/* ── Form Section Headers ── */
+.form-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.6rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--hod-gray-200);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.form-section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.section-student .form-section-icon {
+    background: var(--hod-primary-bg);
+    color: var(--hod-primary);
+}
+.section-student .form-section { color: var(--hod-primary); }
+
+.section-mentor .form-section-icon {
+    background: var(--hod-success-light);
+    color: var(--hod-success);
+}
+.section-mentor .form-section { color: var(--hod-success); }
+
+.section-lecturer .form-section-icon {
+    background: var(--hod-warning-light);
+    color: var(--hod-warning);
+}
+.section-lecturer .form-section { color: var(--hod-warning); }
+
+/* ── Form Inputs ── */
+.hod-form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--hod-gray-600);
+    margin-bottom: 0.3rem;
+}
+.hod-form-input {
+    border: 1px solid var(--hod-gray-300);
+    border-radius: var(--hod-radius-sm);
+    padding: 0.5rem 0.85rem;
+    font-size: 0.875rem;
+    color: var(--hod-gray-800);
+    transition: all 0.2s ease;
+    width: 100%;
+}
+.hod-form-input:focus {
+    border-color: var(--hod-primary-light);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+    outline: none;
+}
+.hod-form-input[readonly] {
+    background: var(--hod-gray-50);
+    color: var(--hod-gray-500);
+}
+
+/* ── Modal Footer ── */
+.hod-modal-footer {
+    background: var(--hod-gray-50);
+    border-top: 1px solid var(--hod-gray-200);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.btn-modal-cancel {
+    background: var(--hod-gray-100);
+    color: var(--hod-gray-600);
+    border: 1px solid var(--hod-gray-300);
+    border-radius: var(--hod-radius-sm);
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.btn-modal-cancel:hover {
+    background: var(--hod-gray-200);
+    color: var(--hod-gray-700);
+}
+.btn-modal-submit {
+    background: var(--hod-primary);
+    color: white;
+    border: none;
+    border-radius: var(--hod-radius-sm);
+    padding: 0.5rem 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+.btn-modal-submit:hover {
+    background: #4338CA;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.35);
+    transform: translateY(-1px);
+    color: white;
+}
+.btn-modal-submit:disabled {
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="mb-4">
-        {% if session.get('role') == 'hod' %}
-            <h2><i class="fas fa-chalkboard-teacher text-primary"></i> รายการอนุมัติและการจัดการ (HOD)</h2>
-            <div class="mt-3">
-                <a href="{{ url_for('hod.dashboard') }}" class="btn btn-outline-primary btn-sm shadow-sm">รายการรออนุมัติ</a>
-                <a href="{{ url_for('hod.manage_supervisors') }}" class="btn btn-outline-primary btn-sm shadow-sm">จัดการสิทธิ์อาจารย์</a>
-                <a href="{{ url_for('lecturer.claim_page') }}" class="btn btn-success btn-sm active shadow-sm">เลือกนักศึกษาเข้าความดูแล</a>
-                <a href="/hod/appointments" class="btn btn-outline-secondary btn-sm shadow-sm">
-                    <i class="fas fa-history me-1"></i> ประวัติการนัด
+<div class="hod-page">
+    <!-- Header -->
+    <div class="hod-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                {% if session.get('role') == 'hod' %}
+                    <h4><i class="fas fa-hand-pointer me-2"></i>เลือกนักศึกษาเข้าความดูแล</h4>
+                    <p>เลือกนักศึกษาที่ได้รับอนุมัติแล้วเพื่อนัดหมายนิเทศ</p>
+                {% else %}
+                    <h4><i class="fas fa-hand-pointer me-2"></i>เลือกนักศึกษาใหม่</h4>
+                    <p>เลือกนักศึกษาฝึกงานเพื่อรับเข้าดูแลและนัดหมายนิเทศ</p>
+                {% endif %}
             </div>
-        {% else %}
-            <h2><i class="fas fa-hand-pointer text-success"></i> เลือกนักศึกษาใหม่</h2>
-            <div class="mt-3">
-                <a href="{{ url_for('lecturer.dashboard') }}" class="btn btn-outline-primary btn-sm shadow-sm">นักศึกษาของฉัน</a>
-                <a href="{{ url_for('lecturer.claim_page') }}" class="btn btn-success btn-sm active shadow-sm">เรียกนักศึกษาใหม่</a>
-            </div>
-        {% endif %}
+            <span class="hod-badge-count">
+                <i class="fas fa-users me-1"></i> {{ students|length }} คน
+            </span>
+        </div>
     </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-            <table id="claimTable" class="table table-hover align-middle">
-                <thead class="bg-light">
-                    <tr>
-                        <th>ชื่อนักศึกษา</th>
-                        <th>บริษัท/สถานประกอบการ</th>
-                        <th>สาขาวิชา</th>
-                        <th class="text-center">การดำเนินการ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for s in students %}
-                    <tr id="row-{{ s._id }}">
-                        <td><strong>{{ s.ocr_extracted_data.student.first_name }} {{ s.ocr_extracted_data.student.last_name }}</strong></td>
-                        <td>
-                            <div class="text-primary fw-bold">{{ s.ocr_extracted_data.internship_place.company_name }}</div>
-                            <small class="text-muted">{{ s.ocr_extracted_data.internship_place.province }}</small>
-                        </td>
-                        <td>{{ s.ocr_extracted_data.student.major }}</td>
-                        <td class="text-center">
-                            <button class="btn btn-info btn-sm px-3 text-white shadow-sm rounded-pill" 
-                                    onclick="openAppointmentModal('{{ s._id }}')">
-                                <i class="fas fa-calendar-check me-1"></i> นัดหมาย
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <!-- Navigation -->
+    <nav class="hod-nav">
+        {% if session.get('role') == 'hod' %}
+            <a href="/hod/dashboard">
+                <i class="fas fa-clipboard-list"></i> รายการรออนุมัติ
+            </a>
+            <a href="/hod/manage-supervisors">
+                <i class="fas fa-user-shield"></i> จัดการสิทธิ์อาจารย์นิเทศ
+            </a>
+            <a href="{{ url_for('lecturer.claim_page') }}" class="active">
+                <i class="fas fa-hand-pointer"></i> เลือกนักศึกษาเข้าความดูแล
+            </a>
+            <a href="/hod/appointments">
+                <i class="fas fa-history"></i> ประวัติการนัด
+            </a>
+        {% else %}
+            <a href="{{ url_for('lecturer.dashboard') }}">
+                <i class="fas fa-users"></i> นักศึกษาของฉัน
+            </a>
+            <a href="{{ url_for('lecturer.claim_page') }}" class="active">
+                <i class="fas fa-hand-pointer"></i> เรียกนักศึกษาใหม่
+            </a>
+        {% endif %}
+    </nav>
+
+    <!-- Table Card -->
+    <div class="hod-card">
+        <div class="hod-card-body">
+            {% if students %}
+            <div class="table-responsive">
+                <table id="claimTable" class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">ชื่อนักศึกษา</th>
+                            <th>บริษัท/สถานประกอบการ</th>
+                            <th>สาขาวิชา</th>
+                            <th class="text-center" style="width:160px">การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students %}
+                        <tr id="row-{{ s._id }}">
+                            <td class="ps-3">
+                                <span style="font-weight:600;color:var(--hod-gray-800);">
+                                    {{ s.student_info.first_name or '-' }}
+                                </span>
+                                {% if s.student_info.student_id_number %}
+                                    <div style="color:var(--hod-gray-400);font-size:0.78rem;">{{ s.student_info.student_id_number }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="font-weight:500;color:var(--hod-gray-700);">{{ s.internship_place.company_name or '-' }}</div>
+                                {% if s.internship_place.address %}
+                                <div style="color:var(--hod-gray-400);font-size:0.78rem;">
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ s.internship_place.address }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="color:var(--hod-gray-600);font-size:0.85rem;">{{ s.student_info.major or '-' }}</span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn-appointment" onclick="openAppointmentModal('{{ s._id }}')">
+                                    <i class="fas fa-calendar-check"></i> นัดหมาย
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="hod-empty">
+                <div class="hod-empty-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <h5>ไม่มีนักศึกษาที่พร้อมรับการดูแล</h5>
+                <p>นักศึกษาทุกคนได้รับการมอบหมายอาจารย์นิเทศแล้ว หรือยังไม่มีใบสมัครที่ได้รับอนุมัติ</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Modal -->
+<!-- ── Appointment Modal ── -->
 <div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="fas fa-calendar-check me-2"></i> รายละเอียดการนัดหมายนิเทศ</h5>
+        <div class="modal-content">
+            <div class="hod-modal-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-calendar-check me-2"></i>รายละเอียดการนัดหมายนิเทศ</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            
-            <form id="appointmentForm">
-                <div class="modal-body p-4">
+
+            <div id="appointmentForm">
+                <div class="modal-body">
                     <input type="hidden" id="modal_doc_id">
-                    
+
                     <!-- ข้อมูลนักศึกษา -->
-                    <h6 class="text-primary border-bottom pb-2 mb-3 fw-bold">
-                        <i class="fas fa-user-graduate me-2"></i> ข้อมูลนักศึกษา (ดึงจาก DB)
-                    </h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="small fw-bold">ชื่อนักศึกษา</label>
-                            <input type="text" class="form-control bg-light" id="s_name" readonly>
+                    <div class="section-student mb-4">
+                        <div class="form-section">
+                            <div class="form-section-icon"><i class="fas fa-user-graduate"></i></div>
+                            ข้อมูลนักศึกษา
                         </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">อีเมล</label>
-                            <input type="email" class="form-control" id="s_email" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">เบอร์ติดต่อ</label>
-                            <input type="text" class="form-control" id="s_phone" required>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="hod-form-label">ชื่อนักศึกษา</label>
+                                <input type="text" class="hod-form-input" id="s_name" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="hod-form-label">อีเมล</label>
+                                <input type="email" class="hod-form-input" id="s_email" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="hod-form-label">เบอร์ติดต่อ</label>
+                                <input type="text" class="hod-form-input" id="s_phone" required>
+                            </div>
                         </div>
                     </div>
 
                     <!-- ข้อมูลพี่เลี้ยง -->
-                    <h6 class="text-success border-bottom pb-2 mb-3 fw-bold">
-                        <i class="fas fa-user-tie me-2"></i> ข้อมูลพี่เลี้ยง (Mentor)
-                    </h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="small fw-bold">ชื่อพี่เลี้ยง</label>
-                            <input type="text" class="form-control" id="m_name" required>
+                    <div class="section-mentor mb-4">
+                        <div class="form-section">
+                            <div class="form-section-icon"><i class="fas fa-user-tie"></i></div>
+                            ข้อมูลพี่เลี้ยง (Mentor)
                         </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">อีเมลพี่เลี้ยง</label>
-                            <input type="email" class="form-control" id="m_email" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">เบอร์ติดต่อพี่เลี้ยง</label>
-                            <input type="text" class="form-control" id="m_phone" required>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="hod-form-label">ชื่อพี่เลี้ยง</label>
+                                <input type="text" class="hod-form-input" id="m_name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="hod-form-label">อีเมลพี่เลี้ยง</label>
+                                <input type="email" class="hod-form-input" id="m_email" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="hod-form-label">เบอร์ติดต่อพี่เลี้ยง</label>
+                                <input type="text" class="hod-form-input" id="m_phone" required>
+                            </div>
                         </div>
                     </div>
 
                     <!-- อาจารย์และนัดหมาย -->
-                    <h6 class="text-warning border-bottom pb-2 mb-3 fw-bold">
-                        <i class="fas fa-chalkboard-teacher me-2"></i> อาจารย์และนัดหมาย
-                    </h6>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="small fw-bold">อาจารย์ผู้นัด</label>
-                            <input type="text" class="form-control bg-light" id="l_name" value="{{ session.get('user_name') }}" readonly>
+                    <div class="section-lecturer">
+                        <div class="form-section">
+                            <div class="form-section-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                            อาจารย์และนัดหมาย
                         </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">เบอร์อาจารย์</label>
-                            <input type="text" class="form-control" id="l_phone" required>
-                        </div>
-                        <div class="col-md-12">
-                            <label class="small fw-bold">ลิงก์ประเมิน</label>
-                            <input type="url" class="form-control" id="eval_link" placeholder="https://..." required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">วันที่นัด</label>
-                            <input type="date" class="form-control" id="visit_date" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">เวลา</label>
-                            <input type="time" class="form-control" id="visit_time" required>
-                            <input type="hidden" id="lecturer_email" value="{{ lecturer_email }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="hod-form-label">อาจารย์ผู้นัด</label>
+                                <input type="text" class="hod-form-input" id="l_name" value="{{ session.get('user_name') }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="hod-form-label">เบอร์อาจารย์</label>
+                                <input type="text" class="hod-form-input" id="l_phone" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="hod-form-label">ลิงก์ประเมิน</label>
+                                <input type="url" class="hod-form-input" id="eval_link" placeholder="https://..." required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="hod-form-label">วันที่นัด</label>
+                                <input type="date" class="hod-form-input" id="visit_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="hod-form-label">เวลา</label>
+                                <input type="time" class="hod-form-input" id="visit_time" required>
+                                <input type="hidden" id="lecturer_email" value="{{ lecturer_email }}">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light border-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="fas fa-paper-plane me-2"></i> บันทึกและส่งอีเมล
+                <div class="hod-modal-footer">
+                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn-modal-submit" id="submitAppointment">
+                        <i class="fas fa-paper-plane"></i> บันทึกและส่งอีเมล
                     </button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -177,70 +627,90 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
-    let table;
-    $(document).ready(function() {
+let table;
+$(document).ready(function() {
+    if ($('#claimTable tbody tr').length > 0) {
         table = $('#claimTable').DataTable({
-            "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json" }
-        });
-    });
-
-    function openAppointmentModal(docId) {
-        fetch(`/lecturer/api/get-student-info/${docId}`)
-        .then(res => res.json())
-        .then(res => {
-            if (res.success) {
-                const d = res.data;
-                document.getElementById('modal_doc_id').value = docId;
-                document.getElementById('s_name').value  = d.s_name  || '';
-                document.getElementById('s_email').value = d.s_email || '';
-                document.getElementById('s_phone').value = d.s_phone || '';
-                document.getElementById('m_name').value  = d.m_name  || '';
-                document.getElementById('m_email').value = d.m_email || '';
-                document.getElementById('m_phone').value = d.m_phone || '';
-
-                new bootstrap.Modal(document.getElementById('appointmentModal')).show();
-            }
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' },
+            pageLength: 10
         });
     }
+});
 
-    document.getElementById('appointmentForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> กำลังส่ง...';
-
-        const payload = {
-            doc_id:    document.getElementById('modal_doc_id').value,
-            s_name:    document.getElementById('s_name').value,
-            s_email:   document.getElementById('s_email').value,
-            s_phone:   document.getElementById('s_phone').value,
-            m_name:    document.getElementById('m_name').value,
-            m_email:   document.getElementById('m_email').value,
-            m_phone:   document.getElementById('m_phone').value,
-            l_name:    document.getElementById('l_name').value,
-            l_phone:   document.getElementById('l_phone').value,
-            eval_link: document.getElementById('eval_link').value,
-            date:      document.getElementById('visit_date').value,
-            time:      document.getElementById('visit_time').value,
-            email:     document.getElementById('lecturer_email').value
-        };
-
-        fetch('/lecturer/api/confirm-appointment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert('นัดหมายและส่งอีเมลเรียบร้อยแล้ว!');
-                location.reload();
-            } else {
-                alert('ข้อผิดพลาด: ' + data.message);
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i> บันทึกและส่งอีเมล';
-            }
-        });
+function openAppointmentModal(docId) {
+    fetch(`/lecturer/api/get-student-info/${docId}`)
+    .then(res => res.json())
+    .then(res => {
+        if (res.success) {
+            const d = res.data;
+            document.getElementById('modal_doc_id').value = docId;
+            document.getElementById('s_name').value  = d.s_name  || '';
+            document.getElementById('s_email').value = d.s_email || '';
+            document.getElementById('s_phone').value = d.s_phone || '';
+            document.getElementById('m_name').value  = d.m_name  || '';
+            document.getElementById('m_email').value = d.m_email || '';
+            document.getElementById('m_phone').value = d.m_phone || '';
+            new bootstrap.Modal(document.getElementById('appointmentModal')).show();
+        }
     });
+}
+
+document.getElementById('submitAppointment').addEventListener('click', function() {
+    const btn = this;
+
+    // Validate required fields
+    const required = ['s_email', 's_phone', 'm_name', 'm_email', 'm_phone', 'l_phone', 'eval_link', 'visit_date', 'visit_time'];
+    for (const id of required) {
+        const el = document.getElementById(id);
+        if (!el.value.trim()) {
+            el.focus();
+            el.style.borderColor = 'var(--hod-danger)';
+            el.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+            setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 2000);
+            return;
+        }
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...';
+
+    const payload = {
+        doc_id:    document.getElementById('modal_doc_id').value,
+        s_name:    document.getElementById('s_name').value,
+        s_email:   document.getElementById('s_email').value,
+        s_phone:   document.getElementById('s_phone').value,
+        m_name:    document.getElementById('m_name').value,
+        m_email:   document.getElementById('m_email').value,
+        m_phone:   document.getElementById('m_phone').value,
+        l_name:    document.getElementById('l_name').value,
+        l_phone:   document.getElementById('l_phone').value,
+        eval_link: document.getElementById('eval_link').value,
+        date:      document.getElementById('visit_date').value,
+        time:      document.getElementById('visit_time').value,
+        email:     document.getElementById('lecturer_email').value
+    };
+
+    fetch('/lecturer/api/confirm-appointment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('นัดหมายและส่งอีเมลเรียบร้อยแล้ว!');
+            location.reload();
+        } else {
+            alert('ข้อผิดพลาด: ' + data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> บันทึกและส่งอีเมล';
+        }
+    })
+    .catch(() => {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> บันทึกและส่งอีเมล';
+    });
+});
 </script>
 {% endblock %}

@@ -12,6 +12,8 @@ from routes.upload import upload_bp
 from routes.auth import auth_bp
 from routes.hod import hod_bp
 from routes.lecturer import lecturer_bp
+from routes.company import company_bp
+
 
 def create_app(config_name='development'):
     app = Flask(__name__)
@@ -50,6 +52,7 @@ def create_app(config_name='development'):
         app.register_blueprint(auth_bp)
         app.register_blueprint(hod_bp)
         app.register_blueprint(lecturer_bp)
+        app.register_blueprint(company_bp)
 
     # 6. Routes หลัก
     @app.route('/')

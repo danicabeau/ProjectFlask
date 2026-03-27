@@ -15,12 +15,10 @@ def dashboard():
 
     db = get_collection('users').database
 
-    # ✅ แก้จาก lecturer_id → advisor_id ให้ตรง schema
     assignments = list(db['advisor_assignments'].find({
         'advisor_id': ObjectId(session['user_id'])
     }))
 
-    # ✅ รวมข้อมูลจาก assignment + internship_document เข้าด้วยกัน
     students = []
     for a in assignments:
         doc_id = a.get('internship_document_id')
@@ -52,19 +50,46 @@ def claim_page():
         return redirect(url_for('lecturer.dashboard'))
 
     db = get_collection('users').database
-    
 
-    # ✅ แก้จาก document_id → internship_document_id ให้ตรง schema
     assigned_ids = db['advisor_assignments'].distinct('internship_document_id')
-    available = list(db['internship_documents'].find({
+    available_docs = list(db['internship_documents'].find({
         'status': 'approved',
         '_id': {'$nin': assigned_ids}
     }))
-    for s in available:
-        s['_id'] = str(s['_id'])
-    lecturer_email = user.get('email', '')  # ดึงจาก user object ที่ query ไว้แล้ว
-    return render_template('lecturer_claim.html', students=available, lecturer_email=lecturer_email)
 
+    # ✅ รวมข้อมูลจาก application_forms เพื่อดึงชื่อนักศึกษา
+    available = []
+    for doc in available_docs:
+        doc['_id'] = str(doc['_id'])
+        ocr = doc.get('ocr_extracted_data', {})
+
+        # ดึงข้อมูลนักศึกษาจาก application_forms โดยใช้ student_id
+        student_id = doc.get('student_id')
+        app_form = None
+        if student_id:
+            app_form = db['application_forms'].find_one({'student_id': student_id})
+
+        student_info = {}
+        if app_form:
+            si = app_form.get('ocr_data', {}).get('student_info', {})
+            student_info = {
+                'first_name': si.get('name_th', ''),
+                'last_name': '',
+                'major': si.get('year', ''),
+                'student_id_number': si.get('student_id', ''),
+            }
+        
+        # ดึงจาก mentor ใน ocr_extracted_data
+        mentor = ocr.get('mentor', {})
+
+        # สร้างโครงสร้างที่ template ต้องการ
+        doc['student_info'] = student_info
+        doc['internship_place'] = ocr.get('internship_place', {})
+        doc['mentor_info'] = mentor
+        available.append(doc)
+
+    lecturer_email = user.get('email', '')
+    return render_template('lecturer_claim.html', students=available, lecturer_email=lecturer_email)
 
 
 @lecturer_bp.route('/api/get-student-info/<doc_id>')
@@ -78,18 +103,36 @@ def get_student_info(doc_id):
             return jsonify({'success': False, 'message': 'ไม่พบเอกสาร'})
 
         ocr = doc.get('ocr_extracted_data', {})
-        std = ocr.get('student', {})
         mnt = ocr.get('mentor', {})
+
+        # ✅ ดึงข้อมูลนักศึกษาจาก application_forms
+        student_id = doc.get('student_id')
+        s_name = ''
+        s_email = ''
+        s_phone = ''
+
+        if student_id:
+            app_form = db['application_forms'].find_one({'student_id': student_id})
+            if app_form:
+                si = app_form.get('ocr_data', {}).get('student_info', {})
+                s_name = si.get('name_th', '')
+                s_phone = si.get('phone', '')
+                # อีเมลอาจอยู่ใน internship_place
+                s_email = ocr.get('internship_place', {}).get('email', '')
+
+        # ✅ mentor มี first_name (ชื่อเต็มรวมนามสกุล) และ phone
+        m_name = mnt.get('first_name', '')
+        m_phone = mnt.get('phone', '')
 
         return jsonify({
             'success': True,
             'data': {
-                's_name':  f"{std.get('first_name', '')} {std.get('last_name', '')}".strip(),
-                's_email': std.get('email', ''),
-                's_phone': std.get('phone', ''),
-                'm_name':  f"{mnt.get('first_name', '')} {mnt.get('last_name', '')}".strip(),
-                'm_email': mnt.get('email', ''),
-                'm_phone': mnt.get('phone', '')
+                's_name':  s_name,
+                's_email': s_email,
+                's_phone': s_phone,
+                'm_name':  m_name,
+                'm_email': '',
+                'm_phone': m_phone
             }
         })
     except Exception as e:
@@ -112,15 +155,13 @@ def confirm_appointment():
         student_id = doc.get('student_id') if doc else doc_id
 
         appointment_data = {
-            # ✅ Required fields ตาม schema
             'student_id':    student_id,
             'advisor_id':    advisor_id,
             'assigned_by':   advisor_id,
             'assigned_date': datetime.utcnow(),
-            'status':        'scheduled',  # ✅ ใช้ scheduled (ต้องเพิ่มใน schema enum ด้วย)
+            'status':        'scheduled',
             'created_at':    datetime.utcnow(),
 
-            # Optional fields
             'internship_document_id': doc_id,
             'updated_at':    datetime.utcnow(),
             'notes':         '',
@@ -171,5 +212,184 @@ def confirm_appointment():
         mail.send(msg)
 
         return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@lecturer_bp.route('/my-appointments')
+def my_appointments():
+    """ประวัติการนัดหมายของตัวเอง"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    db = get_collection('users').database
+    assignments = list(db['advisor_assignments'].find(
+        {'advisor_id': ObjectId(session['user_id'])},
+        sort=[('assigned_date', -1)]
+    ))
+
+    history = []
+    for a in assignments:
+        doc_id = a.get('internship_document_id')
+        doc = db['internship_documents'].find_one({'_id': doc_id}) if doc_id else {}
+        ocr = doc.get('ocr_extracted_data', {}) if doc else {}
+        history.append({
+            '_id':         str(a['_id']),
+            'status':      a.get('status', 'assigned'),
+            'student':     a.get('student', {}),
+            'mentor':      a.get('mentor', {}),
+            'appointment': a.get('appointment', {}),
+            'company':     ocr.get('internship_place', {}),
+        })
+
+    return render_template('lecturer_appointments.html', history=history)
+
+
+@lecturer_bp.route('/api/update-appointment', methods=['POST'])
+def update_appointment():
+    """แก้ไขการนัดหมายของตัวเอง"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        data = request.json
+        db = get_collection('users').database
+        assignment_id = ObjectId(data.get('assignment_id'))
+
+        assignment = db['advisor_assignments'].find_one({'_id': assignment_id})
+        if not assignment:
+            return jsonify({'success': False, 'message': 'ไม่พบรายการนัดหมายนี้'})
+        if str(assignment.get('advisor_id', '')) != session.get('user_id'):
+            return jsonify({'success': False, 'message': 'คุณสามารถแก้ไขได้เฉพาะการนัดหมายของตัวเองเท่านั้น'}), 403
+
+        db['advisor_assignments'].update_one({'_id': assignment_id}, {'$set': {
+            'student': {'name': data.get('s_name', ''), 'email': data.get('s_email', ''), 'phone': data.get('s_phone', '')},
+            'mentor': {'name': data.get('m_name', ''), 'email': data.get('m_email', ''), 'phone': data.get('m_phone', '')},
+            'appointment': {'date': data.get('date', ''), 'time': data.get('time', ''), 'eval_link': data.get('eval_link', ''), 'lecturer_name': data.get('l_name', ''), 'lecturer_phone': data.get('l_phone', '')},
+            'updated_at': datetime.utcnow(),
+        }})
+
+        # ส่งอีเมลแจ้ง
+        recipients = [r for r in [data.get('s_email'), data.get('m_email'), session.get('email')] if r and r.strip()]
+        if recipients:
+            try:
+                msg = Message(
+                    subject=f"[แก้ไข] แจ้งการเปลี่ยนแปลงนัดหมายนิเทศ: {data.get('s_name', '')}",
+                    recipients=recipients,
+                    body=f"""เรียนทุกท่าน,
+
+แจ้งการเปลี่ยนแปลงรายละเอียดการนัดหมายนิเทศ:
+
+- นักศึกษา: {data.get('s_name', '-')}
+- อาจารย์ผู้นิเทศ: {data.get('l_name', '-')} (โทร: {data.get('l_phone', '-')})
+- พี่เลี้ยง: {data.get('m_name', '-')}
+- วันเวลา: {data.get('date', '-')} เวลา {data.get('time', '-')} น.
+- ลิงก์ประเมิน: {data.get('eval_link', '-')}
+
+แก้ไขโดย: {session.get('user_name', '')}
+ระบบจัดการการฝึกงาน (Internship System)
+""")
+                mail.send(msg)
+            except:
+                return jsonify({'success': True, 'message': 'บันทึกเรียบร้อย แต่ส่งอีเมลไม่สำเร็จ'})
+
+        return jsonify({'success': True, 'message': 'บันทึกและส่งอีเมลแจ้งเรียบร้อยแล้ว'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@lecturer_bp.route('/api/complete-appointment', methods=['POST'])
+def complete_appointment():
+    """เปลี่ยนสถานะเป็นเสร็จสิ้น — เฉพาะของตัวเอง"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        data = request.json
+        db = get_collection('users').database
+        assignment_id = ObjectId(data.get('assignment_id'))
+
+        assignment = db['advisor_assignments'].find_one({'_id': assignment_id})
+        if not assignment:
+            return jsonify({'success': False, 'message': 'ไม่พบรายการนี้'})
+        if str(assignment.get('advisor_id', '')) != session.get('user_id'):
+            return jsonify({'success': False, 'message': 'ทำได้เฉพาะการนัดของตัวเองเท่านั้น'}), 403
+
+        db['advisor_assignments'].update_one({'_id': assignment_id}, {'$set': {
+            'status': 'completed', 'completed_by': session.get('user_id'),
+            'completed_at': datetime.utcnow(), 'updated_at': datetime.utcnow(),
+        }})
+
+        student = assignment.get('student', {})
+        mentor = assignment.get('mentor', {})
+        appointment = assignment.get('appointment', {})
+        recipients = [r for r in [student.get('email'), mentor.get('email'), session.get('email')] if r and r.strip()]
+        if recipients:
+            try:
+                msg = Message(
+                    subject=f"[สำเร็จ] การนิเทศเสร็จสิ้น: {student.get('name', '')}",
+                    recipients=recipients,
+                    body=f"""เรียนทุกท่าน,
+
+การนิเทศงานนักศึกษาฝึกงานเสร็จสิ้นแล้ว:
+- นักศึกษา: {student.get('name', '-')}
+- อาจารย์: {appointment.get('lecturer_name', '-')}
+- วันที่นัด: {appointment.get('date', '-')} เวลา {appointment.get('time', '-')} น.
+
+บันทึกโดย: {session.get('user_name', '')}
+ระบบจัดการการฝึกงาน (Internship System)
+""")
+                mail.send(msg)
+            except:
+                return jsonify({'success': True, 'message': 'บันทึกสำเร็จ แต่ส่งอีเมลไม่สำเร็จ'})
+
+        return jsonify({'success': True, 'message': 'บันทึกสถานะเสร็จสิ้นเรียบร้อยแล้ว'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@lecturer_bp.route('/api/cancel-appointment', methods=['POST'])
+def cancel_appointment():
+    """ยกเลิกนัดหมาย — เฉพาะของตัวเอง"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        data = request.json
+        db = get_collection('users').database
+        assignment_id = ObjectId(data.get('assignment_id'))
+
+        assignment = db['advisor_assignments'].find_one({'_id': assignment_id})
+        if not assignment:
+            return jsonify({'success': False, 'message': 'ไม่พบรายการนี้'})
+        if str(assignment.get('advisor_id', '')) != session.get('user_id'):
+            return jsonify({'success': False, 'message': 'ทำได้เฉพาะการนัดของตัวเองเท่านั้น'}), 403
+
+        db['advisor_assignments'].update_one({'_id': assignment_id}, {'$set': {
+            'status': 'cancelled', 'cancelled_by': session.get('user_id'),
+            'cancelled_at': datetime.utcnow(), 'updated_at': datetime.utcnow(),
+        }})
+
+        student = assignment.get('student', {})
+        mentor = assignment.get('mentor', {})
+        appointment = assignment.get('appointment', {})
+        recipients = [r for r in [student.get('email'), mentor.get('email'), session.get('email')] if r and r.strip()]
+        if recipients:
+            try:
+                msg = Message(
+                    subject=f"[ยกเลิก] แจ้งยกเลิกนัดหมายนิเทศ: {student.get('name', '')}",
+                    recipients=recipients,
+                    body=f"""เรียนทุกท่าน,
+
+ขอแจ้งยกเลิกการนัดหมายนิเทศ:
+- นักศึกษา: {student.get('name', '-')}
+- อาจารย์: {appointment.get('lecturer_name', '-')}
+- วันที่นัดเดิม: {appointment.get('date', '-')} เวลา {appointment.get('time', '-')} น.
+
+ยกเลิกโดย: {session.get('user_name', '')}
+ระบบจัดการการฝึกงาน (Internship System)
+""")
+                mail.send(msg)
+            except:
+                return jsonify({'success': True, 'message': 'ยกเลิกเรียบร้อย แต่ส่งอีเมลไม่สำเร็จ'})
+
+        return jsonify({'success': True, 'message': 'ยกเลิกนัดหมายและส่งอีเมลแจ้งเรียบร้อยแล้ว'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
