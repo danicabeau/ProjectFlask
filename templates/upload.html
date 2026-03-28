@@ -3,219 +3,301 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --hod-primary: #4F46E5; --hod-primary-light: #818CF8; --hod-primary-bg: #EEF2FF;
+    --hod-success: #059669; --hod-success-light: #D1FAE5;
+    --hod-danger: #DC2626; --hod-danger-light: #FEE2E2;
+    --hod-warning: #D97706; --hod-warning-light: #FEF3C7;
+    --hod-info: #0891B2; --hod-info-light: #CFFAFE;
+    --hod-gray-50: #F9FAFB; --hod-gray-100: #F3F4F6; --hod-gray-200: #E5E7EB;
+    --hod-gray-300: #D1D5DB; --hod-gray-400: #9CA3AF; --hod-gray-500: #6B7280;
+    --hod-gray-600: #4B5563; --hod-gray-700: #374151; --hod-gray-800: #1F2937;
+    --hod-radius: 16px; --hod-radius-sm: 10px;
+    --hod-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --hod-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+}
+.hod-page { font-family: 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif; background: var(--hod-gray-50); min-height: 100vh; padding-bottom: 3rem; }
+
+.hod-header { background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%); border-radius: 0 0 24px 24px; padding: 2rem 2.5rem 1.5rem; margin: -1rem -12px 2rem; color: white; position: relative; overflow: hidden; }
+.hod-header::before { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%; }
+.hod-header h4 { font-weight: 700; font-size: 1.5rem; margin-bottom: 0.25rem; position: relative; z-index: 1; }
+.hod-header p { opacity: 0.85; font-size: 0.9rem; margin: 0; position: relative; z-index: 1; }
+
+.hod-card { background: white; border-radius: var(--hod-radius); box-shadow: var(--hod-shadow); border: 1px solid var(--hod-gray-200); overflow: hidden; margin-bottom: 1.75rem; }
+.hod-card-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--hod-gray-200); display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.95rem; color: var(--hod-gray-800); }
+.hod-card-header i { color: var(--hod-primary); }
+.hod-card-body { padding: 1.5rem; }
+
+/* ── Upload Area ── */
+.upload-select { border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.6rem 1rem; font-size: 0.9rem; width: 100%; color: var(--hod-gray-700); transition: all 0.2s; }
+.upload-select:focus { border-color: var(--hod-primary-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); outline: none; }
+
+.drop-zone { border: 2px dashed var(--hod-gray-300); border-radius: var(--hod-radius); padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s ease; background: var(--hod-gray-50); }
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--hod-primary-light); background: var(--hod-primary-bg); }
+.drop-zone-icon { width: 56px; height: 56px; background: var(--hod-primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; }
+.drop-zone-icon i { font-size: 1.5rem; color: var(--hod-primary); }
+
+.upload-btn { background: var(--hod-primary); color: white; border: none; border-radius: var(--hod-radius-sm); padding: 0.75rem 2rem; font-size: 0.95rem; font-weight: 600; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s ease; cursor: pointer; }
+.upload-btn:hover { background: #4338CA; box-shadow: 0 4px 12px rgba(79,70,229,0.3); transform: translateY(-1px); }
+.upload-btn:disabled { opacity: 0.6; transform: none; box-shadow: none; cursor: not-allowed; }
+
+.progress-custom { height: 10px; border-radius: 10px; background: var(--hod-gray-200); overflow: hidden; }
+.progress-custom-bar { height: 100%; background: linear-gradient(90deg, var(--hod-primary), #7C3AED); border-radius: 10px; transition: width 0.4s ease; }
+
+/* ── Status Alert ── */
+.status-alert { border-radius: var(--hod-radius-sm); padding: 0.85rem 1.15rem; font-size: 0.875rem; border: none; display: flex; align-items: center; gap: 0.5rem; }
+.status-alert-info { background: var(--hod-info-light); color: var(--hod-info); }
+.status-alert-success { background: var(--hod-success-light); color: var(--hod-success); }
+.status-alert-warning { background: var(--hod-warning-light); color: var(--hod-warning); }
+
+/* ── History Table ── */
+.hod-card .table { margin-bottom: 0; font-size: 0.875rem; }
+.hod-card .table thead th { background: var(--hod-gray-50); border-bottom: 2px solid var(--hod-gray-200); color: var(--hod-gray-500); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.85rem 1rem; white-space: nowrap; }
+.hod-card .table tbody td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--hod-gray-100); vertical-align: middle; }
+.hod-card .table tbody tr:hover { background: var(--hod-primary-bg); }
+.hod-card .table tbody tr:last-child td { border-bottom: none; }
+
+.doc-badge { font-weight: 600; font-size: 0.72rem; padding: 0.3rem 0.75rem; border-radius: 8px; }
+.doc-badge-app { background: var(--hod-primary-bg); color: var(--hod-primary); }
+.doc-badge-acc { background: var(--hod-info-light); color: var(--hod-info); }
+
+.status-badge { font-weight: 600; font-size: 0.72rem; padding: 0.3rem 0.75rem; border-radius: 8px; }
+.status-approved { background: var(--hod-success-light); color: var(--hod-success); }
+.status-pending { background: var(--hod-warning-light); color: var(--hod-warning); }
+
+.action-btns { display: flex; gap: 0.35rem; justify-content: center; }
+.btn-action { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--hod-gray-200); background: white; color: var(--hod-gray-500); font-size: 0.8rem; transition: all 0.2s; cursor: pointer; }
+.btn-action:hover { background: var(--hod-primary-bg); color: var(--hod-primary); border-color: var(--hod-primary-light); }
+.btn-action-danger:hover { background: var(--hod-danger-light); color: var(--hod-danger); border-color: var(--hod-danger); }
+
+.hod-empty { text-align: center; padding: 3rem 2rem; }
+.hod-empty i { font-size: 2.5rem; color: var(--hod-gray-300); margin-bottom: 0.75rem; display: block; }
+.hod-empty p { color: var(--hod-gray-400); font-size: 0.85rem; }
+
+/* ── DataTables Override ── */
+.dataTables_wrapper .dataTables_filter input { border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.45rem 0.85rem; font-size: 0.85rem; }
+.dataTables_wrapper .dataTables_filter input:focus { border-color: var(--hod-primary-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); outline: none; }
+.dataTables_wrapper .dataTables_length select { border: 1px solid var(--hod-gray-300); border-radius: 8px; padding: 0.35rem 0.5rem; font-size: 0.85rem; }
+.dataTables_wrapper .dataTables_info { font-size: 0.8rem; color: var(--hod-gray-500); padding-top: 1rem; }
+.dataTables_wrapper .dataTables_paginate .paginate_button { border-radius: 8px !important; border: none !important; font-size: 0.8rem; margin: 0 2px; }
+.dataTables_wrapper .dataTables_paginate .paginate_button.current { background: var(--hod-primary) !important; color: white !important; border: none !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover { background: var(--hod-primary-bg) !important; color: var(--hod-primary) !important; border: none !important; }
+
+/* ── Modal ── */
+#reviewModal .modal-content { border-radius: var(--hod-radius) !important; border: none !important; box-shadow: var(--hod-shadow-lg); }
+.hod-modal-header { background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%); color: white; padding: 1.15rem 1.5rem; border: none; }
+.hod-modal-header .btn-close { filter: brightness(0) invert(1); }
+#reviewModal .modal-body { padding: 1.5rem; background: var(--hod-gray-50); }
+.hod-modal-footer { background: white; border-top: 1px solid var(--hod-gray-200); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+.form-section-title { display: flex; align-items: center; gap: 0.5rem; padding-bottom: 0.5rem; margin-bottom: 0.75rem; border-bottom: 2px solid var(--hod-gray-200); font-weight: 600; font-size: 0.85rem; }
+.form-section-title .dot { width: 4px; height: 20px; border-radius: 4px; flex-shrink: 0; }
+.section-card { background: white; border-radius: var(--hod-radius-sm); border: 1px solid var(--hod-gray-200); padding: 1rem; margin-bottom: 1rem; }
+.section-card label { font-size: 0.78rem; font-weight: 600; color: var(--hod-gray-500); margin-bottom: 0.2rem; }
+.section-card .form-control { border: 1px solid var(--hod-gray-300); border-radius: 8px; font-size: 0.85rem; padding: 0.45rem 0.75rem; }
+.section-card .form-control:focus { border-color: var(--hod-primary-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+
+.btn-modal-cancel { background: var(--hod-gray-100); color: var(--hod-gray-600); border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+.btn-modal-save { background: var(--hod-success); color: white; border: none; border-radius: var(--hod-radius-sm); padding: 0.5rem 1.5rem; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; transition: all 0.2s; }
+.btn-modal-save:hover { background: #047857; box-shadow: 0 2px 8px rgba(5,150,105,0.3); }
+</style>
 {% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-9">
-        <div class="card shadow-lg border-0 rounded-3">
-            <div class="card-header bg-primary text-white py-3">
-                <h4 class="mb-0 fs-5"><i class="fas fa-file-medical"></i> ระบบวิเคราะห์เอกสารฝึกงาน (AI OCR)</h4>
-            </div>
-            <div class="card-body p-4">
-                <div id="statusAlert" class="alert alert-info d-none mb-4 shadow-sm border-0" role="alert">
-                    <i class="fas fa-info-circle me-2"></i> <span id="statusMessage">กำลังตรวจสอบสถานะ...</span>
-                </div>
-                <div id="alertMessage" class="alert d-none shadow-sm" role="alert"></div>
-
-                <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">1. เลือกประเภทเอกสาร</label>
-                        <select class="form-select form-select-lg" id="documentType" name="document_type" required>
-                            <option value="" selected disabled>-- โปรดเลือกประเภทเอกสาร --</option>
-                            <option value="application_form">ใบสมัครโครงการฝึกประสบการณ์วิชาชีพ (Step 1)</option>
-                            <option value="acceptance_letter" id="optAcceptance" disabled>ใบตอบรับนักศึกษาเข้าฝึกงาน (Step 2)</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">2. เลือกไฟล์เอกสาร</label>
-
-                        <!-- Drop Zone -->
-                        <div id="dropZone" class="rounded-3 p-4 text-center"
-                             style="border: 2px dashed #adb5bd; cursor: pointer; transition: background 0.2s;">
-                            <i class="fas fa-cloud-upload-alt fa-2x mb-2 d-block text-primary"></i>
-                            <span class="text-muted">ลากไฟล์มาวางที่นี่ หรือ </span>
-                            <span class="text-primary fw-bold" style="cursor:pointer; text-decoration:underline"
-                                  onclick="document.getElementById('fileInput').click()">คลิกเพื่อเลือก</span>
-                            <div class="small text-muted mt-1">รองรับ PDF และรูปภาพ PNG/JPG — เลือกได้หลายไฟล์</div>
-                        </div>
-                        <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" multiple class="d-none">
-
-                        <!-- Preview + Drag to Reorder -->
-                        <div id="previewArea" class="d-none mt-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-grip-vertical me-1"></i>
-                                    <span id="previewHint">ลากเพื่อเรียงลำดับหน้า</span>
-                                </small>
-                                <span id="fileCount" class="badge bg-primary rounded-pill"></span>
-                            </div>
-                            <div id="sortableList" class="d-flex flex-wrap gap-2"></div>
-                        </div>
-                    </div>
-
-                    <div id="progressContainer" class="mb-4 d-none">
-                        <div class="progress" style="height: 12px; border-radius: 10px;">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success"
-                                 role="progressbar" style="width: 0%"></div>
-                        </div>
-                        <p class="text-center mt-3 text-primary fw-bold">
-                            <i class="fas fa-robot fa-spin me-2"></i> AI กำลังวิเคราะห์ข้อมูลเชิงลึก...
-                        </p>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow" id="uploadBtn">
-                        <i class="fas fa-search"></i> เริ่มการวิเคราะห์เอกสาร
-                    </button>
-                </form>
-            </div>
+<div class="hod-page">
+    <!-- Header -->
+    <div class="hod-header">
+        <div>
+            <h4><i class="fas fa-file-medical me-2"></i>ระบบวิเคราะห์เอกสารฝึกงาน (AI OCR)</h4>
+            <p>อัปโหลดเอกสารเพื่อให้ AI สกัดข้อมูลอัตโนมัติ</p>
         </div>
     </div>
-</div>
 
-<!-- ตารางประวัติการอัปโหลด -->
-<div class="row justify-content-center mt-4">
-    <div class="col-md-9">
-        <div class="card shadow-sm border-0 rounded-3 mb-5">
-            <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0 fs-6"><i class="fas fa-history me-2"></i> ประวัติการอัปโหลดเอกสารของฉัน</h5>
+    <!-- Upload Card -->
+    <div class="hod-card">
+        <div class="hod-card-header"><i class="fas fa-cloud-upload-alt"></i> อัปโหลดเอกสาร</div>
+        <div class="hod-card-body">
+            <div id="statusAlert" class="status-alert status-alert-info d-none mb-4">
+                <i class="fas fa-info-circle"></i> <span id="statusMessage">กำลังตรวจสอบสถานะ...</span>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table id="historyTable" class="table table-hover mb-0 align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3" style="width: 50px;">ลำดับ</th>
-                                <th style="min-width: 180px;">ชื่อเอกสาร</th>
-                                <th style="width: 110px;">ประเภท</th>
-                                <th style="width: 110px;">สถานะ</th>
-                                <th style="width: 140px;">วันที่ส่ง</th>
-                                <th class="text-center pe-3" style="width: 170px;">การจัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for doc in documents %}
-                            <tr id="row-{{ doc._id }}">
-                                <td class="ps-3">{{ loop.index }}</td>
-                                <td>
-                                    <div class="text-truncate" style="max-width: 220px;" title="{{ doc.file_name }}">
-                                        <i class="far fa-file-pdf text-danger me-2"></i>{{ doc.file_name }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge {% if doc.doc_type == 'ใบสมัคร' %}bg-primary{% else %}bg-info text-dark{% endif %} rounded-pill px-3">
-                                        {{ doc.doc_type }}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if doc.status == 'approved' %}
-                                        <span class="badge bg-success rounded-pill px-3">อนุมัติแล้ว</span>
-                                    {% elif doc.status == 'pending' %}
-                                        <span class="badge bg-warning text-dark rounded-pill px-3">รอตรวจสอบ</span>
-                                    {% elif doc.doc_type == 'ใบตอบรับ' %}
-                                        <span class="badge bg-success rounded-pill px-3">อนุมัติแล้ว</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary rounded-pill px-3">{{ doc.status }}</span>
+            <div id="alertMessage" class="alert d-none shadow-sm" role="alert"></div>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label style="font-size:0.85rem;font-weight:600;color:var(--hod-gray-700);margin-bottom:0.4rem;display:block;">1. เลือกประเภทเอกสาร</label>
+                    <select class="upload-select" id="documentType" name="document_type" required>
+                        <option value="" selected disabled>-- โปรดเลือกประเภทเอกสาร --</option>
+                        <option value="application_form">ใบสมัครโครงการฝึกประสบการณ์วิชาชีพ (Step 1)</option>
+                        <option value="acceptance_letter" id="optAcceptance" disabled>ใบตอบรับนักศึกษาเข้าฝึกงาน (Step 2)</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label style="font-size:0.85rem;font-weight:600;color:var(--hod-gray-700);margin-bottom:0.4rem;display:block;">2. เลือกไฟล์เอกสาร</label>
+                    <div id="dropZone" class="drop-zone">
+                        <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <span style="color:var(--hod-gray-500);">ลากไฟล์มาวางที่นี่ หรือ </span>
+                        <span style="color:var(--hod-primary);font-weight:600;cursor:pointer;text-decoration:underline;" onclick="document.getElementById('fileInput').click()">คลิกเพื่อเลือก</span>
+                        <div style="font-size:0.78rem;color:var(--hod-gray-400);margin-top:0.5rem;">รองรับ PDF และรูปภาพ PNG/JPG — เลือกได้หลายไฟล์</div>
+                    </div>
+                    <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" multiple class="d-none">
+
+                    <div id="previewArea" class="d-none mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small style="color:var(--hod-gray-500);"><i class="fas fa-grip-vertical me-1"></i><span id="previewHint">ลากเพื่อเรียงลำดับหน้า</span></small>
+                            <span id="fileCount" style="background:var(--hod-primary-bg);color:var(--hod-primary);font-size:0.75rem;font-weight:600;padding:0.25rem 0.65rem;border-radius:6px;"></span>
+                        </div>
+                        <div id="sortableList" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+
+                <div id="progressContainer" class="mb-4 d-none">
+                    <div class="progress-custom"><div id="progressBar" class="progress-custom-bar" style="width:0%"></div></div>
+                    <p style="text-align:center;margin-top:0.75rem;color:var(--hod-primary);font-weight:600;font-size:0.9rem;">
+                        <i class="fas fa-robot fa-spin me-2"></i> AI กำลังวิเคราะห์ข้อมูลเชิงลึก...
+                    </p>
+                </div>
+
+                <button type="submit" class="upload-btn" id="uploadBtn">
+                    <i class="fas fa-search"></i> เริ่มการวิเคราะห์เอกสาร
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- History Card -->
+    <div class="hod-card">
+        <div class="hod-card-header"><i class="fas fa-history"></i> ประวัติการอัปโหลดเอกสารของฉัน</div>
+        {% if documents %}
+        <div class="hod-card-body" style="padding:0;">
+            <div class="table-responsive" style="padding:1.5rem;">
+                <table id="historyTable" class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3" style="width:50px;">ลำดับ</th>
+                            <th style="min-width:180px;">ชื่อเอกสาร</th>
+                            <th style="width:110px;">ประเภท</th>
+                            <th style="width:110px;">สถานะ</th>
+                            <th style="width:140px;">วันที่ส่ง</th>
+                            <th class="text-center" style="width:140px;">การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr id="row-{{ doc._id }}">
+                            <td class="ps-3" style="color:var(--hod-gray-400);font-size:0.85rem;">{{ loop.index }}</td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:0.5rem;max-width:220px;">
+                                    <i class="far fa-file-pdf" style="color:var(--hod-danger);"></i>
+                                    <span style="font-weight:500;color:var(--hod-gray-700);font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ doc.file_name }}">{{ doc.file_name }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="doc-badge {% if doc.doc_type == 'ใบสมัคร' %}doc-badge-app{% else %}doc-badge-acc{% endif %}">{{ doc.doc_type }}</span>
+                            </td>
+                            <td>
+                                {% if doc.status == 'approved' or doc.doc_type == 'ใบตอบรับ' %}
+                                    <span class="status-badge status-approved">อนุมัติแล้ว</span>
+                                {% elif doc.status == 'pending' %}
+                                    <span class="status-badge status-pending">รอตรวจสอบ</span>
+                                {% else %}
+                                    <span class="status-badge" style="background:var(--hod-gray-100);color:var(--hod-gray-600);">{{ doc.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="color:var(--hod-gray-500);font-size:0.82rem;">
+                                {{ doc.created_at.strftime('%d/%m/%Y %H:%M') if doc.created_at else '-' }}
+                            </td>
+                            <td>
+                                <div class="action-btns">
+                                    <a href="/document/{{ doc._id }}" class="btn-action" title="ดูข้อมูล"><i class="fas fa-eye"></i></a>
+                                    <a href="/document/download/{{ doc._id }}" class="btn-action" title="ดาวน์โหลด"><i class="fas fa-download"></i></a>
+                                    {% if doc.status != 'approved' %}
+                                    <button class="btn-action btn-action-danger" title="ลบ" onclick="deleteDoc('{{ doc._id }}', '{{ doc.doc_type }}')"><i class="fas fa-trash-alt"></i></button>
                                     {% endif %}
-                                </td>
-                                <td class="small text-muted">
-                                    {{ doc.created_at.strftime('%d/%m/%Y %H:%M') if doc.created_at else '-' }}
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group shadow-sm">
-                                        <a href="/document/{{ doc._id }}" class="btn btn-sm btn-outline-primary" title="ดูข้อมูล">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="/document/download/{{ doc._id }}" class="btn btn-sm btn-outline-secondary" title="ดาวน์โหลด">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                        {% if doc.status != 'approved' %}
-                                        <button class="btn btn-sm btn-outline-danger" title="ลบ"
-                                                onclick="deleteDoc('{{ doc._id }}', '{{ doc.doc_type }}')">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% if not documents %}
-                <div class="text-center py-5">
-                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-                    <p class="text-muted small">ยังไม่มีประวัติการส่งเอกสาร</p>
-                </div>
-                {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
+        {% else %}
+        <div class="hod-empty">
+            <i class="fas fa-folder-open"></i>
+            <p>ยังไม่มีประวัติการส่งเอกสาร</p>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<!-- Review Modal -->
 <div class="modal fade" id="reviewModal" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title"><i class="fas fa-clipboard-check me-2"></i> ตรวจสอบข้อมูลความถูกต้อง</h5>
+        <div class="modal-content">
+            <div class="hod-modal-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-clipboard-check me-2"></i>ตรวจสอบข้อมูลความถูกต้อง</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-4 bg-light">
+            <div class="modal-body">
                 <input type="hidden" id="filename">
                 <input type="hidden" id="gridfs_id">
                 <input type="hidden" id="doc_type_hidden">
 
                 <div id="applicationFields" class="d-none">
-                    <h6 class="text-primary fw-bold mb-3 border-start border-4 border-primary ps-2">1. ข้อมูลส่วนตัวนักศึกษา</h6>
-                    <div class="card card-body border-0 shadow-sm mb-4">
+                    <div class="form-section-title"><div class="dot" style="background:var(--hod-primary);"></div> ข้อมูลส่วนตัวนักศึกษา</div>
+                    <div class="section-card">
                         <div class="row g-2">
-                            <div class="col-md-6"><label class="small text-muted">ชื่อ-นามสกุล (ไทย)</label><input type="text" class="form-control" id="app_std_name_th"></div>
-                            <div class="col-md-6"><label class="small text-muted">Name-Surname (EN)</label><input type="text" class="form-control" id="app_std_name_en"></div>
-                            <div class="col-md-6"><label class="small text-muted">รหัสนักศึกษา</label><input type="text" class="form-control" id="app_std_id"></div>
-                            <div class="col-md-3"><label class="small text-muted">เกรด (GPAX)</label><input type="text" class="form-control" id="app_std_gpax"></div>
-                            <div class="col-md-3"><label class="small text-muted">ชั้นปี</label><input type="text" class="form-control" id="app_std_year"></div>
-                            <div class="col-12"><label class="small text-muted">ที่อยู่ตามทะเบียน</label><input type="text" class="form-control" id="app_std_address"></div>
-                            <div class="col-md-6"><label class="small text-muted">เบอร์โทรศัพท์นักศึกษา</label><input type="text" class="form-control" id="app_std_phone"></div>
-                            <div class="col-md-6"><label class="small text-muted">สถานะทหาร</label><input type="text" class="form-control" id="app_military"></div>
+                            <div class="col-md-6"><label>ชื่อ-นามสกุล (ไทย)</label><input type="text" class="form-control" id="app_std_name_th"></div>
+                            <div class="col-md-6"><label>Name-Surname (EN)</label><input type="text" class="form-control" id="app_std_name_en"></div>
+                            <div class="col-md-6"><label>รหัสนักศึกษา</label><input type="text" class="form-control" id="app_std_id"></div>
+                            <div class="col-md-3"><label>เกรด (GPAX)</label><input type="text" class="form-control" id="app_std_gpax"></div>
+                            <div class="col-md-3"><label>ชั้นปี</label><input type="text" class="form-control" id="app_std_year"></div>
+                            <div class="col-12"><label>ที่อยู่ตามทะเบียน</label><input type="text" class="form-control" id="app_std_address"></div>
+                            <div class="col-md-6"><label>เบอร์โทรศัพท์</label><input type="text" class="form-control" id="app_std_phone"></div>
+                            <div class="col-md-6"><label>สถานะทหาร</label><input type="text" class="form-control" id="app_military"></div>
                         </div>
                     </div>
-                    <h6 class="text-success fw-bold mb-3 border-start border-4 border-success ps-2">2. ข้อมูลครอบครัว</h6>
-                    <div class="card card-body border-0 shadow-sm mb-4">
+                    <div class="form-section-title"><div class="dot" style="background:var(--hod-success);"></div> ข้อมูลครอบครัว</div>
+                    <div class="section-card">
                         <div class="row g-2">
-                            <div class="col-md-6"><label class="small text-muted">ชื่อบิดา</label><input type="text" class="form-control" id="app_f_name"></div>
-                            <div class="col-md-6"><label class="small text-muted">เบอร์โทรศัพท์บิดา</label><input type="text" class="form-control" id="app_f_phone"></div>
-                            <div class="col-md-6 mt-2"><label class="small text-muted">ชื่อมารดา</label><input type="text" class="form-control" id="app_m_name"></div>
-                            <div class="col-md-6 mt-2"><label class="small text-muted">เบอร์โทรศัพท์มารดา</label><input type="text" class="form-control" id="app_m_phone"></div>
+                            <div class="col-md-6"><label>ชื่อบิดา</label><input type="text" class="form-control" id="app_f_name"></div>
+                            <div class="col-md-6"><label>เบอร์โทรบิดา</label><input type="text" class="form-control" id="app_f_phone"></div>
+                            <div class="col-md-6"><label>ชื่อมารดา</label><input type="text" class="form-control" id="app_m_name"></div>
+                            <div class="col-md-6"><label>เบอร์โทรมารดา</label><input type="text" class="form-control" id="app_m_phone"></div>
                         </div>
                     </div>
-                    <h6 class="text-danger fw-bold mb-3 border-start border-4 border-danger ps-2">3. บุคคลติดต่อฉุกเฉิน</h6>
-                    <div class="card card-body border-0 shadow-sm">
+                    <div class="form-section-title"><div class="dot" style="background:var(--hod-danger);"></div> บุคคลติดต่อฉุกเฉิน</div>
+                    <div class="section-card">
                         <div class="row g-2">
-                            <div class="col-md-7"><label class="small text-muted">ชื่อผู้ติดต่อ</label><input type="text" class="form-control" id="app_emg_name"></div>
-                            <div class="col-md-5"><label class="small text-muted">เบอร์โทรฉุกเฉิน</label><input type="text" class="form-control" id="app_emg_phone"></div>
-                            <div class="col-12"><label class="small text-muted">ที่อยู่ติดต่อ</label><input type="text" class="form-control" id="app_emg_address"></div>
+                            <div class="col-md-7"><label>ชื่อผู้ติดต่อ</label><input type="text" class="form-control" id="app_emg_name"></div>
+                            <div class="col-md-5"><label>เบอร์โทรฉุกเฉิน</label><input type="text" class="form-control" id="app_emg_phone"></div>
+                            <div class="col-12"><label>ที่อยู่ติดต่อ</label><input type="text" class="form-control" id="app_emg_address"></div>
                         </div>
                     </div>
                 </div>
 
                 <div id="acceptanceFields" class="d-none">
-                    <h6 class="text-warning fw-bold mb-3 border-start border-4 border-warning ps-2">ข้อมูลสถานประกอบการ</h6>
-                    <div class="card card-body border-0 shadow-sm">
+                    <div class="form-section-title"><div class="dot" style="background:var(--hod-warning);"></div> ข้อมูลสถานประกอบการ</div>
+                    <div class="section-card">
                         <div class="row g-2">
-                            <div class="col-md-8"><label class="small text-muted">ชื่อบริษัท</label><input type="text" class="form-control" id="acc_comp_name"></div>
-                            <div class="col-md-4"><label class="small text-muted">เบอร์โทรบริษัท</label><input type="text" class="form-control" id="acc_comp_phone"></div>
-                            <div class="col-md-8"><label class="small text-muted">ที่อยู่บริษัท</label><input type="text" class="form-control" id="acc_comp_address"></div>
-                            <div class="col-md-4"><label class="small text-muted">Email บริษัท</label><input type="text" class="form-control" id="acc_comp_email"></div>
-                            <div class="col-md-6"><label class="small text-muted">ชื่อพี่เลี้ยง</label><input type="text" class="form-control" id="acc_mentor_name"></div>
-                            <div class="col-md-6"><label class="small text-muted">เบอร์โทรพี่เลี้ยง</label><input type="text" class="form-control" id="acc_mentor_phone"></div>
-                            <div class="col-md-6"><label class="small text-muted">วันที่เริ่มฝึก</label><input type="date" class="form-control" id="acc_start"></div>
-                            <div class="col-md-6"><label class="small text-muted">วันที่สิ้นสุด</label><input type="date" class="form-control" id="acc_end"></div>
+                            <div class="col-md-8"><label>ชื่อบริษัท</label><input type="text" class="form-control" id="acc_comp_name"></div>
+                            <div class="col-md-4"><label>เบอร์โทรบริษัท</label><input type="text" class="form-control" id="acc_comp_phone"></div>
+                            <div class="col-md-8"><label>ที่อยู่บริษัท</label><input type="text" class="form-control" id="acc_comp_address"></div>
+                            <div class="col-md-4"><label>Email บริษัท</label><input type="text" class="form-control" id="acc_comp_email"></div>
+                            <div class="col-md-6"><label>ชื่อพี่เลี้ยง</label><input type="text" class="form-control" id="acc_mentor_name"></div>
+                            <div class="col-md-6"><label>เบอร์โทรพี่เลี้ยง</label><input type="text" class="form-control" id="acc_mentor_phone"></div>
+                            <div class="col-md-6"><label>วันที่เริ่มฝึก</label><input type="date" class="form-control" id="acc_start"></div>
+                            <div class="col-md-6"><label>วันที่สิ้นสุด</label><input type="date" class="form-control" id="acc_end"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer bg-white shadow-sm">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">ยกเลิก</button>
-                <button type="button" id="saveBtn" class="btn btn-success px-4 fw-bold">ยืนยันข้อมูลและบันทึก</button>
+            <div class="hod-modal-footer">
+                <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" id="saveBtn" class="btn-modal-save"><i class="fas fa-check"></i> ยืนยันข้อมูลและบันทึก</button>
             </div>
         </div>
     </div>
@@ -236,157 +318,90 @@ document.addEventListener('DOMContentLoaded', function () {
     if (modalEl) reviewModal = new bootstrap.Modal(modalEl);
     checkUploadEligibility();
 
-    // Init DataTables
-    $('#historyTable').DataTable({
-        language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' },
-        order: [[4, 'desc']],
-        pageLength: 5,
-        lengthMenu: [5, 10, 25],
-        columnDefs: [{ orderable: false, targets: [0, 5] }]
-    });
+    if ($('#historyTable tbody tr').length > 0) {
+        $('#historyTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' },
+            order: [[4, 'desc']], pageLength: 5, lengthMenu: [5, 10, 25],
+            columnDefs: [{ orderable: false, targets: [0, 5] }]
+        });
+    }
 
-    // Drop zone events
     const zone = document.getElementById('dropZone');
-    zone.addEventListener('dragover',  (e) => { e.preventDefault(); zone.style.background = '#e8f0fe'; });
-    zone.addEventListener('dragleave', ()  => { zone.style.background = ''; });
-    zone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        zone.style.background = '';
-        handleFiles(Array.from(e.dataTransfer.files));
-    });
+    zone.addEventListener('dragover',  (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', ()  => { zone.classList.remove('dragover'); });
+    zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('dragover'); handleFiles(Array.from(e.dataTransfer.files)); });
     zone.addEventListener('click', () => document.getElementById('fileInput').click());
-
-    document.getElementById('fileInput').addEventListener('change', function () {
-        handleFiles(Array.from(this.files));
-        this.value = ''; // reset เพื่อให้เลือกไฟล์เดิมซ้ำได้
-    });
+    document.getElementById('fileInput').addEventListener('change', function () { handleFiles(Array.from(this.files)); this.value = ''; });
 });
 
 function handleFiles(newFiles) {
     const allowed = ['application/pdf', 'image/png', 'image/jpeg'];
     const valid = newFiles.filter(f => allowed.includes(f.type));
     if (!valid.length) { alert('ไฟล์ไม่ถูกต้อง รองรับเฉพาะ PDF, PNG, JPG'); return; }
-
     const hasPDF = valid.some(f => f.type === 'application/pdf');
-    if (hasPDF) {
-        // PDF: ใช้แค่ 1 ไฟล์ (มีหลายหน้าอยู่แล้ว)
-        orderedFiles = [valid.find(f => f.type === 'application/pdf')];
-    } else {
-        // รูปภาพ: เพิ่มต่อท้าย ให้ user ลาก reorder ได้
-        orderedFiles = [...orderedFiles, ...valid];
-    }
+    if (hasPDF) { orderedFiles = [valid.find(f => f.type === 'application/pdf')]; }
+    else { orderedFiles = [...orderedFiles, ...valid]; }
     renderPreview();
 }
 
 function renderPreview() {
-    const list  = document.getElementById('sortableList');
-    const area  = document.getElementById('previewArea');
-    const hint  = document.getElementById('previewHint');
+    const list = document.getElementById('sortableList');
+    const area = document.getElementById('previewArea');
+    const hint = document.getElementById('previewHint');
     const count = document.getElementById('fileCount');
-
     if (!orderedFiles.length) { area.classList.add('d-none'); return; }
     area.classList.remove('d-none');
-
     const isPDF = orderedFiles[0].type === 'application/pdf';
-    hint.textContent  = isPDF ? 'PDF จะอ่านทุกหน้าอัตโนมัติ' : 'ลากเพื่อเรียงลำดับหน้า';
+    hint.textContent = isPDF ? 'PDF จะอ่านทุกหน้าอัตโนมัติ' : 'ลากเพื่อเรียงลำดับหน้า';
     count.textContent = isPDF ? '1 ไฟล์ PDF' : `${orderedFiles.length} หน้า`;
-
     list.innerHTML = '';
     orderedFiles.forEach((file, i) => {
         const card = document.createElement('div');
-        card.className   = 'text-center position-relative';
-        card.draggable   = !isPDF;
-        card.dataset.idx = i;
+        card.className = 'text-center position-relative'; card.draggable = !isPDF; card.dataset.idx = i;
         card.style.cssText = 'cursor:' + (isPDF ? 'default' : 'grab') + '; user-select:none;';
-
         if (isPDF) {
-            card.innerHTML = `
-                <div class="p-3 border rounded-3 bg-white shadow-sm" style="width:90px">
-                    <i class="fas fa-file-pdf fa-2x text-danger"></i>
-                    <div class="small text-muted mt-1 text-truncate" style="max-width:80px" title="${file.name}">${file.name}</div>
-                </div>`;
+            card.innerHTML = `<div style="padding:0.75rem;border:1px solid var(--hod-gray-200);border-radius:10px;background:white;width:90px;"><i class="fas fa-file-pdf fa-2x" style="color:var(--hod-danger);"></i><div style="font-size:0.7rem;color:var(--hod-gray-400);margin-top:0.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:75px;" title="${file.name}">${file.name}</div></div>`;
         } else {
             const url = URL.createObjectURL(file);
-            card.innerHTML = `
-                <div class="border rounded-3 overflow-hidden shadow-sm" style="width:80px">
-                    <img src="${url}" style="width:80px;height:80px;object-fit:cover">
-                </div>
-                <div class="small text-muted mt-1">หน้า ${i + 1}</div>
-                <button type="button" onclick="removeFile(${i})"
-                        class="btn btn-danger rounded-circle position-absolute d-flex align-items-center justify-content-center"
-                        style="top:-6px;right:-6px;width:20px;height:20px;padding:0;font-size:11px">×</button>`;
+            card.innerHTML = `<div style="border:1px solid var(--hod-gray-200);border-radius:10px;overflow:hidden;width:80px;"><img src="${url}" style="width:80px;height:80px;object-fit:cover"></div><div style="font-size:0.7rem;color:var(--hod-gray-400);margin-top:0.25rem;">หน้า ${i+1}</div><button type="button" onclick="removeFile(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;padding:0;font-size:11px;border-radius:50%;border:none;background:var(--hod-danger);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;">×</button>`;
         }
-
-        // Drag-to-reorder
-        card.addEventListener('dragstart', (e) => {
-            dragSrcIndex = i;
-            e.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => card.style.opacity = '0.4', 0);
-        });
-        card.addEventListener('dragend',  () => { card.style.opacity = '1'; });
-        card.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            card.style.outline = '2px solid #0d6efd';
-        });
+        card.addEventListener('dragstart', (e) => { dragSrcIndex = i; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => card.style.opacity = '0.4', 0); });
+        card.addEventListener('dragend', () => { card.style.opacity = '1'; });
+        card.addEventListener('dragover', (e) => { e.preventDefault(); card.style.outline = '2px solid var(--hod-primary)'; });
         card.addEventListener('dragleave', () => { card.style.outline = ''; });
-        card.addEventListener('drop', (e) => {
-            e.preventDefault();
-            card.style.outline = '';
-            if (dragSrcIndex === null || dragSrcIndex === i) return;
-            const moved = orderedFiles.splice(dragSrcIndex, 1)[0];
-            orderedFiles.splice(i, 0, moved);
-            dragSrcIndex = null;
-            renderPreview();
-        });
-
+        card.addEventListener('drop', (e) => { e.preventDefault(); card.style.outline = ''; if (dragSrcIndex === null || dragSrcIndex === i) return; const moved = orderedFiles.splice(dragSrcIndex, 1)[0]; orderedFiles.splice(i, 0, moved); dragSrcIndex = null; renderPreview(); });
         list.appendChild(card);
     });
 }
 
-function removeFile(index) {
-    orderedFiles.splice(index, 1);
-    renderPreview();
-}
-
-function safeSet(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.value = value || '';
-    else console.warn(`[OCR] Element '${id}' not found`);
-}
+function removeFile(index) { orderedFiles.splice(index, 1); renderPreview(); }
+function safeSet(id, value) { const el = document.getElementById(id); if (el) el.value = value || ''; }
 
 async function checkUploadEligibility() {
     try {
-        const res  = await fetch('/api/check-status');
+        const res = await fetch('/api/check-status');
         const data = await res.json();
-        const alertDiv  = document.getElementById('statusAlert');
-        const msgSpan   = document.getElementById('statusMessage');
-        const optAcc    = document.getElementById('optAcceptance');
-        const optApp    = document.querySelector('option[value="application_form"]');
+        const alertDiv = document.getElementById('statusAlert');
+        const msgSpan = document.getElementById('statusMessage');
+        const optAcc = document.getElementById('optAcceptance');
+        const optApp = document.querySelector('option[value="application_form"]');
         const docSelect = document.getElementById('documentType');
-
         alertDiv.classList.remove('d-none');
-
         if (data.application_approved) {
-            // อนุมัติแล้ว — ซ่อนใบสมัคร เปิดใบตอบรับ และ auto-select
-            alertDiv.className = "alert alert-success border-0 shadow-sm";
-            msgSpan.innerHTML  = "<b>ใบสมัครได้รับการอนุมัติแล้ว:</b> คุณสามารถอัปโหลดใบตอบรับได้";
+            alertDiv.className = 'status-alert status-alert-success';
+            msgSpan.innerHTML = '<b>ใบสมัครได้รับการอนุมัติแล้ว:</b> คุณสามารถอัปโหลดใบตอบรับได้';
             if (optApp) optApp.style.display = 'none';
             if (optAcc) { optAcc.disabled = false; optAcc.selected = true; }
-
         } else if (data.has_application) {
-            // มีใบสมัครแล้วแต่ยังรออนุมัติ — ซ่อนใบสมัคร ล็อก form ทั้งหมด
-            alertDiv.className = "alert alert-warning border-0 shadow-sm";
-            msgSpan.innerHTML  = "<b>ใบสมัครอยู่ระหว่างการอนุมัติ</b> กรุณารอการอนุมัติก่อนจึงจะอัปโหลดใบตอบรับได้";
+            alertDiv.className = 'status-alert status-alert-warning';
+            msgSpan.innerHTML = '<b>ใบสมัครอยู่ระหว่างการอนุมัติ</b> กรุณารอการอนุมัติก่อนจึงจะอัปโหลดใบตอบรับได้';
             if (optApp) optApp.style.display = 'none';
-            // ซ่อน form ทั้งหมด เพราะยังทำอะไรไม่ได้
             document.getElementById('dropZone').style.display = 'none';
             document.getElementById('uploadBtn').style.display = 'none';
-            docSelect.closest('.mb-3').style.display = 'none';
-
+            docSelect.closest('.mb-4').style.display = 'none';
         } else {
-            // ยังไม่มีใบสมัคร — แสดงปกติ
-            alertDiv.className = "alert alert-info border-0 shadow-sm";
-            msgSpan.innerText  = "กรุณาเริ่มต้นด้วยการอัปโหลดใบสมัครก่อน";
+            alertDiv.className = 'status-alert status-alert-info';
+            msgSpan.innerText = 'กรุณาเริ่มต้นด้วยการอัปโหลดใบสมัครก่อน';
         }
     } catch (e) { console.error("Eligibility check failed:", e); }
 }
@@ -394,173 +409,83 @@ async function checkUploadEligibility() {
 document.getElementById('uploadForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     if (!orderedFiles.length) { alert('กรุณาเลือกไฟล์'); return; }
-
-    // ✅ ส่งตามลำดับที่ user จัดไว้ใน orderedFiles (ไม่เรียงตามชื่อ)
     const formData = new FormData();
     formData.append('document_type', document.getElementById('documentType').value);
     orderedFiles.forEach(f => formData.append('files[]', f));
-
     const btn = document.getElementById('uploadBtn');
     btn.disabled = true;
     document.getElementById('progressContainer').classList.remove('d-none');
     document.getElementById('progressBar').style.width = '50%';
-
     try {
         const response = await fetch('/upload', { method: 'POST', body: formData });
         const res = await response.json();
         if (res.success) {
             document.getElementById('progressBar').style.width = '100%';
-            setTimeout(() => {
-                showReviewModal(res.data, formData.get('document_type'));
-                btn.disabled = false;
-                document.getElementById('progressContainer').classList.add('d-none');
-            }, 500);
-        } else {
-            alert(res.message);
-            btn.disabled = false;
-            document.getElementById('progressContainer').classList.add('d-none');
-        }
-    } catch (err) {
-        alert("Upload Failed");
-        btn.disabled = false;
-        document.getElementById('progressContainer').classList.add('d-none');
-    }
+            setTimeout(() => { showReviewModal(res.data, formData.get('document_type')); btn.disabled = false; document.getElementById('progressContainer').classList.add('d-none'); }, 500);
+        } else { alert(res.message); btn.disabled = false; document.getElementById('progressContainer').classList.add('d-none'); }
+    } catch (err) { alert("Upload Failed"); btn.disabled = false; document.getElementById('progressContainer').classList.add('d-none'); }
 });
 
 function showReviewModal(data, type) {
     const ocr = data.ocr_data || {};
-    safeSet('filename',       data.filename);
-    safeSet('gridfs_id',      data.gridfs_id);
-    safeSet('doc_type_hidden', type);
-
+    safeSet('filename', data.filename); safeSet('gridfs_id', data.gridfs_id); safeSet('doc_type_hidden', type);
     if (type === 'application_form') {
         document.getElementById('applicationFields').classList.remove('d-none');
         document.getElementById('acceptanceFields').classList.add('d-none');
-        const info = ocr.student_info || {};
-        const fam  = ocr.family_info  || {};
-        const emg  = ocr.emergency    || {};
-        safeSet('app_std_name_th',  info.name_th);
-        safeSet('app_std_name_en',  info.name_en);
-        safeSet('app_std_id',       info.student_id);
-        safeSet('app_std_gpax',     info.gpax);
-        safeSet('app_std_year',     info.year);
-        safeSet('app_std_address',  info.address_reg);
-        safeSet('app_std_phone',    info.phone);
-        safeSet('app_military',     info.military_status);
-        safeSet('app_f_name',       fam.father?.name);
-        safeSet('app_f_phone',      fam.father?.phone);
-        safeSet('app_m_name',       fam.mother?.name);
-        safeSet('app_m_phone',      fam.mother?.phone);
-        safeSet('app_emg_name',     emg.name);
-        safeSet('app_emg_phone',    emg.phone);
-        safeSet('app_emg_address',  emg.address);
+        const info = ocr.student_info || {}, fam = ocr.family_info || {}, emg = ocr.emergency || {};
+        safeSet('app_std_name_th', info.name_th); safeSet('app_std_name_en', info.name_en);
+        safeSet('app_std_id', info.student_id); safeSet('app_std_gpax', info.gpax);
+        safeSet('app_std_year', info.year); safeSet('app_std_address', info.address_reg);
+        safeSet('app_std_phone', info.phone); safeSet('app_military', info.military_status);
+        safeSet('app_f_name', fam.father?.name); safeSet('app_f_phone', fam.father?.phone);
+        safeSet('app_m_name', fam.mother?.name); safeSet('app_m_phone', fam.mother?.phone);
+        safeSet('app_emg_name', emg.name); safeSet('app_emg_phone', emg.phone); safeSet('app_emg_address', emg.address);
     } else {
         document.getElementById('applicationFields').classList.add('d-none');
         document.getElementById('acceptanceFields').classList.remove('d-none');
-        const place  = ocr.internship_place  || {};
-        const mentor = ocr.mentor            || {};
-        const period = ocr.internship_period || {};
-        safeSet('acc_comp_name',    place.company_name);
-        safeSet('acc_comp_phone',   place.phone);
-        safeSet('acc_comp_address', place.address);
-        safeSet('acc_comp_email',   place.email);
-        safeSet('acc_mentor_name',  `${mentor.first_name || ''} ${mentor.last_name || ''}`.trim());
-        safeSet('acc_mentor_phone', mentor.phone);
-        safeSet('acc_start',        period.start_date);
-        safeSet('acc_end',          period.end_date);
+        const place = ocr.internship_place || {}, mentor = ocr.mentor || {}, period = ocr.internship_period || {};
+        safeSet('acc_comp_name', place.company_name); safeSet('acc_comp_phone', place.phone);
+        safeSet('acc_comp_address', place.address); safeSet('acc_comp_email', place.email);
+        safeSet('acc_mentor_name', `${mentor.first_name || ''} ${mentor.last_name || ''}`.trim());
+        safeSet('acc_mentor_phone', mentor.phone); safeSet('acc_start', period.start_date); safeSet('acc_end', period.end_date);
     }
     if (reviewModal) reviewModal.show();
 }
 
 document.getElementById('saveBtn').addEventListener('click', async function () {
-    const btn     = this;
-    const type    = document.getElementById('doc_type_hidden').value;
+    const btn = this, type = document.getElementById('doc_type_hidden').value;
     const saveUrl = type === 'application_form' ? '/save-application' : '/save-document';
-    btn.disabled  = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
-
-    const payload = {
-        filename: document.getElementById('filename').value,
-        gridfs_id: document.getElementById('gridfs_id').value,
-        ocr_data: {}
-    };
-
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+    const payload = { filename: document.getElementById('filename').value, gridfs_id: document.getElementById('gridfs_id').value, ocr_data: {} };
     if (type === 'application_form') {
         payload.ocr_data = {
-            student_info: {
-                name_th:         document.getElementById('app_std_name_th').value,
-                name_en:         document.getElementById('app_std_name_en').value,
-                student_id:      document.getElementById('app_std_id').value,
-                gpax:            document.getElementById('app_std_gpax').value,
-                year:            document.getElementById('app_std_year').value,
-                address_reg:     document.getElementById('app_std_address').value,
-                phone:           document.getElementById('app_std_phone').value,
-                military_status: document.getElementById('app_military').value
-            },
-            family_info: {
-                father: { name: document.getElementById('app_f_name').value,  phone: document.getElementById('app_f_phone').value },
-                mother: { name: document.getElementById('app_m_name').value,  phone: document.getElementById('app_m_phone').value }
-            },
-            emergency: {
-                name:    document.getElementById('app_emg_name').value,
-                phone:   document.getElementById('app_emg_phone').value,
-                address: document.getElementById('app_emg_address').value
-            }
+            student_info: { name_th: document.getElementById('app_std_name_th').value, name_en: document.getElementById('app_std_name_en').value, student_id: document.getElementById('app_std_id').value, gpax: document.getElementById('app_std_gpax').value, year: document.getElementById('app_std_year').value, address_reg: document.getElementById('app_std_address').value, phone: document.getElementById('app_std_phone').value, military_status: document.getElementById('app_military').value },
+            family_info: { father: { name: document.getElementById('app_f_name').value, phone: document.getElementById('app_f_phone').value }, mother: { name: document.getElementById('app_m_name').value, phone: document.getElementById('app_m_phone').value } },
+            emergency: { name: document.getElementById('app_emg_name').value, phone: document.getElementById('app_emg_phone').value, address: document.getElementById('app_emg_address').value }
         };
     } else {
         payload.ocr_data = {
-            internship_place:  {
-                    company_name: document.getElementById('acc_comp_name').value,
-                    phone:        document.getElementById('acc_comp_phone').value,
-                    address:      document.getElementById('acc_comp_address').value,
-                    email:        document.getElementById('acc_comp_email').value
-                },
-            mentor:            { first_name: document.getElementById('acc_mentor_name').value, phone: document.getElementById('acc_mentor_phone').value },
+            internship_place: { company_name: document.getElementById('acc_comp_name').value, phone: document.getElementById('acc_comp_phone').value, address: document.getElementById('acc_comp_address').value, email: document.getElementById('acc_comp_email').value },
+            mentor: { first_name: document.getElementById('acc_mentor_name').value, phone: document.getElementById('acc_mentor_phone').value },
             internship_period: { start_date: document.getElementById('acc_start').value, end_date: document.getElementById('acc_end').value }
         };
     }
-
     try {
-        const response = await fetch(saveUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const res = await response.json();
-        if (res.success) {
-            reviewModal.hide();
-            alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
-            location.reload();
-        } else {
-            alert("Error: " + res.message);
-            btn.disabled  = false;
-            btn.innerHTML = 'ยืนยันข้อมูลและบันทึก';
-        }
-    } catch (e) {
-        alert("Save Error");
-        btn.disabled  = false;
-        btn.innerHTML = 'ยืนยันข้อมูลและบันทึก';
-    }
+        if (res.success) { reviewModal.hide(); alert("บันทึกข้อมูลเรียบร้อยแล้ว!"); location.reload(); }
+        else { alert("Error: " + res.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> ยืนยันข้อมูลและบันทึก'; }
+    } catch (e) { alert("Save Error"); btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> ยืนยันข้อมูลและบันทึก'; }
 });
 
 async function deleteDoc(id, docType) {
     if (!confirm(`ยืนยันการลบ${docType}นี้ออกจากระบบ?`)) return;
     try {
-        const res = await fetch(`/document/delete/${id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
+        const res = await fetch(`/document/delete/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
         const data = await res.json();
-        if (data.success) {
-            // ลบแถวออกจากตาราง
-            const dt = $('#historyTable').DataTable();
-            dt.row($(`#row-${id}`)).remove().draw();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    } catch (e) {
-        alert('เกิดข้อผิดพลาด');
-    }
+        if (data.success) { const dt = $('#historyTable').DataTable(); dt.row($(`#row-${id}`)).remove().draw(); }
+        else { alert('Error: ' + data.message); }
+    } catch (e) { alert('เกิดข้อผิดพลาด'); }
 }
 </script>
 {% endblock %}

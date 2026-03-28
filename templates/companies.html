@@ -3,66 +3,112 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --hod-primary: #4F46E5; --hod-primary-light: #818CF8; --hod-primary-bg: #EEF2FF;
+    --hod-success: #059669; --hod-success-light: #D1FAE5;
+    --hod-info: #0891B2; --hod-info-light: #CFFAFE;
+    --hod-gray-50: #F9FAFB; --hod-gray-100: #F3F4F6; --hod-gray-200: #E5E7EB;
+    --hod-gray-300: #D1D5DB; --hod-gray-400: #9CA3AF; --hod-gray-500: #6B7280;
+    --hod-gray-600: #4B5563; --hod-gray-700: #374151; --hod-gray-800: #1F2937;
+    --hod-radius: 16px; --hod-radius-sm: 10px;
+    --hod-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+.hod-page { font-family: 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif; background: var(--hod-gray-50); min-height: 100vh; padding-bottom: 3rem; }
+.hod-header { background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%); border-radius: 0 0 24px 24px; padding: 2rem 2.5rem 1.5rem; margin: -1rem -12px 2rem; color: white; position: relative; overflow: hidden; }
+.hod-header::before { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%; }
+.hod-header h4 { font-weight: 700; font-size: 1.5rem; margin-bottom: 0.25rem; position: relative; z-index: 1; }
+.hod-header p { opacity: 0.85; font-size: 0.9rem; margin: 0; position: relative; z-index: 1; }
+.hod-badge-count { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; font-weight: 600; font-size: 0.85rem; padding: 0.5rem 1.25rem; border-radius: 50px; position: relative; z-index: 1; }
+
+.hod-card { background: white; border-radius: var(--hod-radius); box-shadow: var(--hod-shadow); border: 1px solid var(--hod-gray-200); overflow: hidden; }
+.hod-card-body { padding: 1.5rem; }
+.hod-card .table { margin-bottom: 0; font-size: 0.875rem; }
+.hod-card .table thead th { background: var(--hod-gray-50); border-bottom: 2px solid var(--hod-gray-200); color: var(--hod-gray-500); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.85rem 1rem; white-space: nowrap; }
+.hod-card .table tbody td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--hod-gray-100); vertical-align: middle; }
+.hod-card .table tbody tr:hover { background: var(--hod-primary-bg); }
+.hod-card .table tbody tr:last-child td { border-bottom: none; }
+
+.biz-badge { background: var(--hod-info-light); color: var(--hod-info); font-weight: 600; font-size: 0.72rem; padding: 0.3rem 0.7rem; border-radius: 8px; }
+.count-badge { background: var(--hod-primary-bg); color: var(--hod-primary); font-weight: 700; font-size: 0.8rem; padding: 0.3rem 0.75rem; border-radius: 50px; }
+.btn-detail { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--hod-gray-200); background: white; color: var(--hod-gray-500); font-size: 0.85rem; transition: all 0.2s; }
+.btn-detail:hover { background: var(--hod-primary-bg); color: var(--hod-primary); border-color: var(--hod-primary-light); }
+
+.hod-empty { text-align: center; padding: 4rem 2rem; }
+.hod-empty-icon { width: 80px; height: 80px; background: var(--hod-gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+.hod-empty-icon i { font-size: 2rem; color: var(--hod-gray-400); }
+.hod-empty h5 { font-weight: 600; color: var(--hod-gray-700); margin-bottom: 0.35rem; }
+
+.dataTables_wrapper .dataTables_filter input { border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.45rem 0.85rem; font-size: 0.85rem; }
+.dataTables_wrapper .dataTables_filter input:focus { border-color: var(--hod-primary-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); outline: none; }
+.dataTables_wrapper .dataTables_length select { border: 1px solid var(--hod-gray-300); border-radius: 8px; padding: 0.35rem 0.5rem; font-size: 0.85rem; }
+.dataTables_wrapper .dataTables_info { font-size: 0.8rem; color: var(--hod-gray-500); padding-top: 1rem; }
+.dataTables_wrapper .dataTables_paginate .paginate_button { border-radius: 8px !important; border: none !important; font-size: 0.8rem; margin: 0 2px; }
+.dataTables_wrapper .dataTables_paginate .paginate_button.current { background: var(--hod-primary) !important; color: white !important; border: none !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover { background: var(--hod-primary-bg) !important; color: var(--hod-primary) !important; border: none !important; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-11">
-
-        <div class="card shadow-lg border-0 rounded-3">
-            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fs-6">
-                    <i class="fas fa-building me-2"></i> สถานประกอบการที่เคยรับนักศึกษาฝึกงาน
-                </h5>
-                <span class="badge bg-warning text-dark">{{ companies|length }} แห่ง</span>
+<div class="hod-page">
+    <div class="hod-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4><i class="fas fa-building me-2"></i>สถานประกอบการ</h4>
+                <p>รายชื่อสถานประกอบการที่นักศึกษาฝึกงานสำเร็จแล้ว</p>
             </div>
-            <div class="card-body p-4">
-                <table id="companiesTable" class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+            <span class="hod-badge-count"><i class="fas fa-building me-1"></i> {{ companies|length }} แห่ง</span>
+        </div>
+    </div>
+
+    <div class="hod-card">
+        <div class="hod-card-body">
+            {% if companies %}
+            <div class="table-responsive">
+                <table id="companiesTable" class="table align-middle mb-0">
+                    <thead>
                         <tr>
-                            <th style="width:40px" class="ps-3">#</th>
+                            <th class="ps-3" style="width:40px">#</th>
                             <th style="min-width:200px">ชื่อบริษัท</th>
                             <th style="min-width:200px">ที่อยู่</th>
                             <th style="width:130px">ประเภทธุรกิจ</th>
                             <th style="width:120px">เบอร์โทร</th>
                             <th style="width:180px">Email</th>
                             <th style="width:80px" class="text-center">นศ. ที่ไป</th>
-                            <th style="width:60px" class="text-center">รายละเอียด</th>
+                            <th style="width:60px" class="text-center">ดู</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for c in companies %}
                         <tr>
-                            <td class="ps-3">{{ loop.index }}</td>
-                            <td>
-                                <div class="fw-bold">{{ c.company_name or '-' }}</div>
-                            </td>
-                            <td>
-                                <small class="text-muted">{{ c.address or '-' }}</small>
-                            </td>
+                            <td class="ps-3" style="color:var(--hod-gray-400);font-size:0.85rem;">{{ loop.index }}</td>
+                            <td><span style="font-weight:600;color:var(--hod-gray-800);">{{ c.company_name or '-' }}</span></td>
+                            <td><span style="color:var(--hod-gray-500);font-size:0.82rem;">{{ c.address or '-' }}</span></td>
                             <td>
                                 {% if c.business_type %}
-                                <span class="badge bg-info text-dark rounded-pill px-2">{{ c.business_type }}</span>
-                                {% else %}-{% endif %}
+                                    <span class="biz-badge">{{ c.business_type }}</span>
+                                {% else %}<span style="color:var(--hod-gray-400);">-</span>{% endif %}
                             </td>
-                            <td><small>{{ c.phone or '-' }}</small></td>
-                            <td><small>{{ c.email or '-' }}</small></td>
+                            <td><span style="color:var(--hod-gray-600);font-size:0.85rem;">{{ c.phone or '-' }}</span></td>
+                            <td><span style="color:var(--hod-gray-600);font-size:0.85rem;">{{ c.email or '-' }}</span></td>
+                            <td class="text-center"><span class="count-badge">{{ c.student_count }}</span></td>
                             <td class="text-center">
-                                <span class="badge bg-primary rounded-pill px-3">{{ c.student_count }}</span>
-                            </td>
-                            <td class="text-center">
-                                <a href="/companies/{{ c.company_name | urlencode }}"
-                                   class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-users"></i>
-                                </a>
+                                <a href="/companies/{{ c.company_name | urlencode }}" class="btn-detail"><i class="fas fa-users"></i></a>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="hod-empty">
+                <div class="hod-empty-icon"><i class="fas fa-building"></i></div>
+                <h5>ยังไม่มีสถานประกอบการที่นิเทศสำเร็จ</h5>
+                <p style="color:var(--hod-gray-400);font-size:0.875rem;">สถานประกอบการจะปรากฏเมื่อมีการนิเทศที่สถานะ "เสร็จสิ้น"</p>
+            </div>
+            {% endif %}
         </div>
-
     </div>
 </div>
 {% endblock %}
@@ -73,12 +119,13 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
 $(document).ready(function () {
-    $('#companiesTable').DataTable({
-        language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' },
-        order: [[6, 'desc']],
-        pageLength: 10,
-        columnDefs: [{ orderable: false, targets: [7] }]
-    });
+    if ($('#companiesTable tbody tr').length > 0) {
+        $('#companiesTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/th.json' },
+            order: [[6, 'desc']], pageLength: 10,
+            columnDefs: [{ orderable: false, targets: [7] }]
+        });
+    }
 });
 </script>
 {% endblock %}

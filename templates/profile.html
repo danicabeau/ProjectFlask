@@ -1,232 +1,226 @@
 {% extends "base.html" %}
 {% block title %}ข้อมูลส่วนตัว - ระบบจัดการการฝึกงาน{% endblock %}
 
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --hod-primary: #4F46E5; --hod-primary-light: #818CF8; --hod-primary-bg: #EEF2FF;
+    --hod-success: #059669; --hod-success-light: #D1FAE5;
+    --hod-danger: #DC2626; --hod-danger-light: #FEE2E2;
+    --hod-warning: #D97706; --hod-warning-light: #FEF3C7;
+    --hod-gray-50: #F9FAFB; --hod-gray-100: #F3F4F6; --hod-gray-200: #E5E7EB;
+    --hod-gray-300: #D1D5DB; --hod-gray-400: #9CA3AF; --hod-gray-500: #6B7280;
+    --hod-gray-600: #4B5563; --hod-gray-700: #374151; --hod-gray-800: #1F2937;
+    --hod-radius: 16px; --hod-radius-sm: 10px;
+    --hod-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --hod-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+}
+.hod-page { font-family: 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif; background: var(--hod-gray-50); min-height: 100vh; padding-bottom: 3rem; max-width: 860px; margin: 0 auto; }
+.hod-header { background: linear-gradient(135deg, var(--hod-primary) 0%, #7C3AED 100%); border-radius: 0 0 24px 24px; padding: 2rem 2.5rem 1.5rem; margin: -1rem -12px 2rem; color: white; position: relative; overflow: hidden; }
+.hod-header::before { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%; }
+.hod-header h4 { font-weight: 700; font-size: 1.5rem; margin-bottom: 0.25rem; position: relative; z-index: 1; }
+.hod-header p { opacity: 0.85; font-size: 0.9rem; margin: 0; position: relative; z-index: 1; }
+
+.profile-card { background: white; border-radius: var(--hod-radius); box-shadow: var(--hod-shadow); border: 1px solid var(--hod-gray-200); margin-bottom: 1.25rem; overflow: hidden; }
+.profile-card-header { display: flex; align-items: center; gap: 0.6rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--hod-gray-200); }
+.profile-card-header .card-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+.profile-card-header h6 { font-weight: 600; font-size: 0.95rem; color: var(--hod-gray-800); margin: 0; }
+.profile-card-body { padding: 1.25rem 1.5rem; }
+
+.profile-label { font-size: 0.78rem; font-weight: 600; color: var(--hod-gray-500); margin-bottom: 0.25rem; display: block; }
+.profile-input { border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.5rem 0.85rem; font-size: 0.875rem; color: var(--hod-gray-800); width: 100%; transition: all 0.2s; }
+.profile-input:focus { border-color: var(--hod-primary-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); outline: none; }
+.profile-input[disabled] { background: var(--hod-gray-50); color: var(--hod-gray-400); }
+.profile-hint { font-size: 0.72rem; color: var(--hod-gray-400); margin-top: 0.2rem; }
+
+.sub-label { font-size: 0.8rem; font-weight: 600; padding: 0.3rem 0.65rem; border-radius: 6px; display: inline-block; margin-bottom: 0.5rem; }
+
+.save-bar { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 2rem; }
+.btn-save { background: var(--hod-primary); color: white; border: none; border-radius: var(--hod-radius-sm); padding: 0.6rem 1.75rem; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; transition: all 0.2s; }
+.btn-save:hover { background: #4338CA; box-shadow: 0 4px 12px rgba(79,70,229,0.3); transform: translateY(-1px); }
+.btn-cancel { background: var(--hod-gray-100); color: var(--hod-gray-600); border: 1px solid var(--hod-gray-300); border-radius: var(--hod-radius-sm); padding: 0.6rem 1.5rem; font-size: 0.9rem; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; cursor: pointer; transition: all 0.2s; }
+.btn-cancel:hover { background: var(--hod-gray-200); color: var(--hod-gray-700); }
+
+.btn-transfer { background: var(--hod-danger); color: white; border: none; border-radius: var(--hod-radius-sm); padding: 0.55rem 1.25rem; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; transition: all 0.2s; width: 100%; justify-content: center; }
+.btn-transfer:hover { background: #B91C1C; box-shadow: 0 4px 12px rgba(220,38,38,0.3); }
+
+.hod-toast { position: fixed; top: 24px; right: 24px; z-index: 1055; min-width: 320px; border-radius: var(--hod-radius-sm); padding: 1rem 1.25rem; font-size: 0.875rem; font-weight: 500; box-shadow: var(--hod-shadow-lg); border: none; animation: slideIn 0.3s ease; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-9">
+<div class="hod-page">
+    <div id="alertContainer"></div>
 
-        <div id="alertBox" class="alert d-none border-0 shadow-sm mb-3" role="alert"></div>
+    <div class="hod-header">
+        <div>
+            <h4><i class="fas fa-user-cog me-2"></i>ข้อมูลส่วนตัว</h4>
+            <p>จัดการข้อมูลบัญชีและข้อมูลส่วนตัวของคุณ</p>
+        </div>
+    </div>
 
-        <!-- ข้อมูล Account -->
-        <div class="card shadow-lg border-0 rounded-3 mb-4">
-            <div class="card-header bg-dark text-white py-3 d-flex align-items-center gap-2">
-                <i class="fas fa-user-cog"></i>
-                <h5 class="mb-0 fs-6">ข้อมูล Account</h5>
-            </div>
-            <div class="card-body p-4">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">ชื่อ</label>
-                        <input type="text" class="form-control" id="first_name"
-                               value="{{ user.profile.get('first_name', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">นามสกุล</label>
-                        <input type="text" class="form-control" id="last_name"
-                               value="{{ user.profile.get('last_name', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">ชื่อที่แสดงในระบบ</label>
-                        <input type="text" class="form-control" id="display_name" value="{{ user.name }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">เบอร์โทรศัพท์</label>
-                        <input type="text" class="form-control" id="phone"
-                               value="{{ user.profile.get('phone', '') }}" placeholder="0xx-xxxxxxx">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label small text-muted fw-bold">อีเมล</label>
-                        <input type="text" class="form-control bg-light" value="{{ user.email }}" disabled>
-                        <small class="text-muted">ไม่สามารถเปลี่ยนอีเมลได้</small>
-                    </div>
+    <!-- Account -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <div class="card-icon" style="background:var(--hod-primary-bg);color:var(--hod-primary);"><i class="fas fa-user-cog"></i></div>
+            <h6>ข้อมูล Account</h6>
+        </div>
+        <div class="profile-card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="profile-label">ชื่อ</label>
+                    <input type="text" class="profile-input" id="first_name" value="{{ user.profile.get('first_name', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="profile-label">นามสกุล</label>
+                    <input type="text" class="profile-input" id="last_name" value="{{ user.profile.get('last_name', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="profile-label">ชื่อที่แสดงในระบบ</label>
+                    <input type="text" class="profile-input" id="display_name" value="{{ user.name }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="profile-label">เบอร์โทรศัพท์</label>
+                    <input type="text" class="profile-input" id="phone" value="{{ user.profile.get('phone', '') }}" placeholder="0xx-xxxxxxx">
+                </div>
+                <div class="col-12">
+                    <label class="profile-label">อีเมล</label>
+                    <input type="text" class="profile-input" value="{{ user.email }}" disabled>
+                    <div class="profile-hint">ไม่สามารถเปลี่ยนอีเมลได้</div>
                 </div>
             </div>
         </div>
+    </div>
 
-        {% if session.get('role') == 'student' and app %}
+    {% if session.get('role') == 'student' and app %}
 
-        <!-- ข้อมูลนักศึกษา -->
-        <div class="card shadow-lg border-0 rounded-3 mb-4">
-            <div class="card-header bg-primary text-white py-3">
-                <h5 class="mb-0 fs-6"><i class="fas fa-user-graduate me-2"></i>ข้อมูลนักศึกษา</h5>
+    <!-- Student Info -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <div class="card-icon" style="background:#DBEAFE;color:#2563EB;"><i class="fas fa-user-graduate"></i></div>
+            <h6>ข้อมูลนักศึกษา</h6>
+        </div>
+        <div class="profile-card-body">
+            <div class="row g-3">
+                <div class="col-md-6"><label class="profile-label">ชื่อ-นามสกุล (ไทย)</label><input type="text" class="profile-input" id="std_name_th" value="{{ app.ocr_data.student_info.get('name_th', '') }}"></div>
+                <div class="col-md-6"><label class="profile-label">Name-Surname (EN)</label><input type="text" class="profile-input" id="std_name_en" value="{{ app.ocr_data.student_info.get('name_en', '') }}"></div>
+                <div class="col-md-4"><label class="profile-label">รหัสนักศึกษา</label><input type="text" class="profile-input" id="std_student_id" value="{{ app.ocr_data.student_info.get('student_id', '') }}"></div>
+                <div class="col-md-4"><label class="profile-label">GPAX</label><input type="text" class="profile-input" id="std_gpax" value="{{ app.ocr_data.student_info.get('gpax', '') }}"></div>
+                <div class="col-md-4"><label class="profile-label">ชั้นปี</label><input type="text" class="profile-input" id="std_year" value="{{ app.ocr_data.student_info.get('year', '') }}"></div>
+                <div class="col-12"><label class="profile-label">ที่อยู่ตามทะเบียนบ้าน</label><input type="text" class="profile-input" id="std_address" value="{{ app.ocr_data.student_info.get('address_reg', '') }}"></div>
+                <div class="col-md-6"><label class="profile-label">เบอร์โทรศัพท์</label><input type="text" class="profile-input" id="std_phone" value="{{ app.ocr_data.student_info.get('phone', '') }}"></div>
+                <div class="col-md-6"><label class="profile-label">สถานะทหาร</label><input type="text" class="profile-input" id="std_military" value="{{ app.ocr_data.student_info.get('military_status', '') }}"></div>
             </div>
-            <div class="card-body p-4">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">ชื่อ-นามสกุล (ไทย)</label>
-                        <input type="text" class="form-control" id="std_name_th"
-                               value="{{ app.ocr_data.student_info.get('name_th', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">Name-Surname (EN)</label>
-                        <input type="text" class="form-control" id="std_name_en"
-                               value="{{ app.ocr_data.student_info.get('name_en', '') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small text-muted fw-bold">รหัสนักศึกษา</label>
-                        <input type="text" class="form-control" id="std_student_id"
-                               value="{{ app.ocr_data.student_info.get('student_id', '') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small text-muted fw-bold">GPAX</label>
-                        <input type="text" class="form-control" id="std_gpax"
-                               value="{{ app.ocr_data.student_info.get('gpax', '') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small text-muted fw-bold">ชั้นปี</label>
-                        <input type="text" class="form-control" id="std_year"
-                               value="{{ app.ocr_data.student_info.get('year', '') }}">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label small text-muted fw-bold">ที่อยู่ตามทะเบียนบ้าน</label>
-                        <input type="text" class="form-control" id="std_address"
-                               value="{{ app.ocr_data.student_info.get('address_reg', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">เบอร์โทรศัพท์</label>
-                        <input type="text" class="form-control" id="std_phone"
-                               value="{{ app.ocr_data.student_info.get('phone', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">สถานะทหาร</label>
-                        <input type="text" class="form-control" id="std_military"
-                               value="{{ app.ocr_data.student_info.get('military_status', '') }}">
-                    </div>
+        </div>
+    </div>
+
+    <!-- Family -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <div class="card-icon" style="background:var(--hod-success-light);color:var(--hod-success);"><i class="fas fa-users"></i></div>
+            <h6>ข้อมูลครอบครัว</h6>
+        </div>
+        <div class="profile-card-body">
+            {% set father = app.ocr_data.family_info.get('father', {}) %}
+            {% set mother = app.ocr_data.family_info.get('mother', {}) %}
+            <div class="sub-label" style="background:var(--hod-success-light);color:var(--hod-success);">บิดา</div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6"><label class="profile-label">ชื่อ-นามสกุล</label><input type="text" class="profile-input" id="fam_f_name" value="{{ father.get('name', '') }}"></div>
+                <div class="col-md-3"><label class="profile-label">อายุ</label><input type="text" class="profile-input" id="fam_f_age" value="{{ father.get('age', '') }}"></div>
+                <div class="col-md-3"><label class="profile-label">เบอร์โทร</label><input type="text" class="profile-input" id="fam_f_phone" value="{{ father.get('phone', '') }}"></div>
+                <div class="col-md-6"><label class="profile-label">อาชีพ</label><input type="text" class="profile-input" id="fam_f_job" value="{{ father.get('job', '') }}"></div>
+            </div>
+            <div class="sub-label" style="background:var(--hod-success-light);color:var(--hod-success);">มารดา</div>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="profile-label">ชื่อ-นามสกุล</label><input type="text" class="profile-input" id="fam_m_name" value="{{ mother.get('name', '') }}"></div>
+                <div class="col-md-3"><label class="profile-label">อายุ</label><input type="text" class="profile-input" id="fam_m_age" value="{{ mother.get('age', '') }}"></div>
+                <div class="col-md-3"><label class="profile-label">เบอร์โทร</label><input type="text" class="profile-input" id="fam_m_phone" value="{{ mother.get('phone', '') }}"></div>
+                <div class="col-md-6"><label class="profile-label">อาชีพ</label><input type="text" class="profile-input" id="fam_m_job" value="{{ mother.get('job', '') }}"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <div class="card-icon" style="background:var(--hod-danger-light);color:var(--hod-danger);"><i class="fas fa-phone-alt"></i></div>
+            <h6>บุคคลติดต่อกรณีฉุกเฉิน</h6>
+        </div>
+        <div class="profile-card-body">
+            {% set emg = app.ocr_data.get('emergency', {}) %}
+            <div class="row g-3">
+                <div class="col-md-7"><label class="profile-label">ชื่อผู้ติดต่อ</label><input type="text" class="profile-input" id="emg_name" value="{{ emg.get('name', '') }}"></div>
+                <div class="col-md-5"><label class="profile-label">เบอร์โทร</label><input type="text" class="profile-input" id="emg_phone" value="{{ emg.get('phone', '') }}"></div>
+                <div class="col-12"><label class="profile-label">ที่อยู่</label><input type="text" class="profile-input" id="emg_address" value="{{ emg.get('address', '') }}"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Internship / Mentor -->
+    {% if internship %}
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <div class="card-icon" style="background:var(--hod-warning-light);color:var(--hod-warning);"><i class="fas fa-building"></i></div>
+            <h6>ข้อมูลพี่เลี้ยง / สถานประกอบการ</h6>
+        </div>
+        <div class="profile-card-body">
+            {% set mentor = internship.ocr_extracted_data.get('mentor', {}) %}
+            {% set place = internship.ocr_extracted_data.get('internship_place', {}) %}
+            <div class="row g-3">
+                <div class="col-md-8"><label class="profile-label">ชื่อบริษัท</label><input type="text" class="profile-input" id="place_name" value="{{ place.get('company_name', '') }}"></div>
+                <div class="col-md-4"><label class="profile-label">เบอร์โทรบริษัท</label><input type="text" class="profile-input" id="place_phone" value="{{ place.get('phone', '') }}"></div>
+                <div class="col-md-6"><label class="profile-label">ชื่อพี่เลี้ยง</label><input type="text" class="profile-input" id="mentor_name" value="{{ mentor.get('first_name', '') }} {{ mentor.get('last_name', '') }}"></div>
+                <div class="col-md-6"><label class="profile-label">เบอร์โทรพี่เลี้ยง</label><input type="text" class="profile-input" id="mentor_phone" value="{{ mentor.get('phone', '') }}"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
+    <!-- HOD Transfer Section -->
+    {% if session.get('role') == 'hod' %}
+    <div class="profile-card" style="border: 1px solid #FCA5A5;">
+        <div class="profile-card-header" style="background: #FEF2F2; border-bottom-color: #FECACA;">
+            <div class="card-icon" style="background:var(--hod-danger-light);color:var(--hod-danger);"><i class="fas fa-exchange-alt"></i></div>
+            <h6 style="color:var(--hod-danger);">โอนตำแหน่ง HOD</h6>
+        </div>
+        <div class="profile-card-body">
+            <div style="background:#FEF2F2;border-radius:10px;padding:0.85rem 1rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:0.6rem;">
+                <i class="fas fa-exclamation-triangle" style="color:var(--hod-danger);margin-top:0.15rem;"></i>
+                <div style="font-size:0.82rem;color:#991B1B;line-height:1.5;">
+                    <strong>คำเตือน:</strong> เมื่อโอนตำแหน่งแล้ว คุณจะถูกเปลี่ยนเป็น Lecturer ทันที และระบบจะบังคับให้ออกจากระบบ ไม่สามารถยกเลิกได้
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="profile-label">เลือกอาจารย์ที่จะรับตำแหน่ง HOD</label>
+                    <select class="profile-input" id="transfer_target" style="cursor:pointer;">
+                        <option value="">-- เลือกอาจารย์ --</option>
+                        {% for l in lecturers %}
+                            <option value="{{ l._id }}">{{ l.name }} ({{ l.email }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn-transfer" onclick="transferHOD()">
+                        <i class="fas fa-exchange-alt"></i> โอนตำแหน่ง
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
+    {% endif %}
 
-        <!-- ข้อมูลครอบครัว -->
-        <div class="card shadow-lg border-0 rounded-3 mb-4">
-            <div class="card-header bg-success text-white py-3">
-                <h5 class="mb-0 fs-6"><i class="fas fa-users me-2"></i>ข้อมูลครอบครัว</h5>
-            </div>
-            <div class="card-body p-4">
-                {% set father = app.ocr_data.family_info.get('father', {}) %}
-                {% set mother = app.ocr_data.family_info.get('mother', {}) %}
-                <div class="row g-3">
-                    <div class="col-12"><small class="fw-bold text-success">บิดา</small></div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">ชื่อ-นามสกุลบิดา</label>
-                        <input type="text" class="form-control" id="fam_f_name"
-                               value="{{ father.get('name', '') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small text-muted">อายุ</label>
-                        <input type="text" class="form-control" id="fam_f_age"
-                               value="{{ father.get('age', '') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small text-muted">เบอร์โทร</label>
-                        <input type="text" class="form-control" id="fam_f_phone"
-                               value="{{ father.get('phone', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">อาชีพ</label>
-                        <input type="text" class="form-control" id="fam_f_job"
-                               value="{{ father.get('job', '') }}">
-                    </div>
-
-                    <div class="col-12 mt-2"><small class="fw-bold text-success">มารดา</small></div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">ชื่อ-นามสกุลมารดา</label>
-                        <input type="text" class="form-control" id="fam_m_name"
-                               value="{{ mother.get('name', '') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small text-muted">อายุ</label>
-                        <input type="text" class="form-control" id="fam_m_age"
-                               value="{{ mother.get('age', '') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small text-muted">เบอร์โทร</label>
-                        <input type="text" class="form-control" id="fam_m_phone"
-                               value="{{ mother.get('phone', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">อาชีพ</label>
-                        <input type="text" class="form-control" id="fam_m_job"
-                               value="{{ mother.get('job', '') }}">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- บุคคลติดต่อฉุกเฉิน -->
-        <div class="card shadow-lg border-0 rounded-3 mb-4">
-            <div class="card-header bg-danger text-white py-3">
-                <h5 class="mb-0 fs-6"><i class="fas fa-phone-alt me-2"></i>บุคคลติดต่อกรณีฉุกเฉิน</h5>
-            </div>
-            <div class="card-body p-4">
-                {% set emg = app.ocr_data.get('emergency', {}) %}
-                <div class="row g-3">
-                    <div class="col-md-7">
-                        <label class="form-label small text-muted fw-bold">ชื่อผู้ติดต่อ</label>
-                        <input type="text" class="form-control" id="emg_name"
-                               value="{{ emg.get('name', '') }}">
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label small text-muted fw-bold">เบอร์โทร</label>
-                        <input type="text" class="form-control" id="emg_phone"
-                               value="{{ emg.get('phone', '') }}">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label small text-muted fw-bold">ที่อยู่</label>
-                        <input type="text" class="form-control" id="emg_address"
-                               value="{{ emg.get('address', '') }}">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ข้อมูลพี่เลี้ยง (ถ้ามีใบตอบรับ) -->
-        {% if internship %}
-        <div class="card shadow-lg border-0 rounded-3 mb-4">
-            <div class="card-header bg-warning text-dark py-3">
-                <h5 class="mb-0 fs-6"><i class="fas fa-building me-2"></i>ข้อมูลพี่เลี้ยง / สถานประกอบการ</h5>
-            </div>
-            <div class="card-body p-4">
-                {% set mentor = internship.ocr_extracted_data.get('mentor', {}) %}
-                {% set place  = internship.ocr_extracted_data.get('internship_place', {}) %}
-                <div class="row g-3">
-                    <div class="col-md-8">
-                        <label class="form-label small text-muted fw-bold">ชื่อบริษัท</label>
-                        <input type="text" class="form-control" id="place_name"
-                               value="{{ place.get('company_name', '') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small text-muted fw-bold">เบอร์โทรบริษัท</label>
-                        <input type="text" class="form-control" id="place_phone"
-                               value="{{ place.get('phone', '') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">ชื่อพี่เลี้ยง</label>
-                        <input type="text" class="form-control" id="mentor_name"
-                               value="{{ mentor.get('first_name', '') }} {{ mentor.get('last_name', '') }}".strip()>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted fw-bold">เบอร์โทรพี่เลี้ยง</label>
-                        <input type="text" class="form-control" id="mentor_phone"
-                               value="{{ mentor.get('phone', '') }}">
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% endif %}
-
-        <!-- ปุ่ม Save -->
-        <div class="d-flex justify-content-end gap-2 mb-5"
-             id="saveBar"
-             data-is-student="{{ 'true' if session.get('role') == 'student' and app else 'false' }}"
-             data-has-internship="{{ 'true' if internship else 'false' }}">
-            <a href="javascript:history.back()" class="btn btn-secondary px-4">ยกเลิก</a>
-            <button class="btn btn-primary px-4 fw-bold" onclick="saveProfile()">
-                <i class="fas fa-save me-1"></i> บันทึกทั้งหมด
-            </button>
-        </div>
-
+    <!-- Save Bar -->
+    <div class="save-bar"
+         id="saveBar"
+         data-is-student="{{ 'true' if session.get('role') == 'student' and app else 'false' }}"
+         data-has-internship="{{ 'true' if internship else 'false' }}">
+        <a href="javascript:history.back()" class="btn-cancel">ยกเลิก</a>
+        <button class="btn-save" onclick="saveProfile()"><i class="fas fa-save"></i> บันทึกทั้งหมด</button>
     </div>
 </div>
 {% endblock %}
@@ -234,67 +228,78 @@
 {% block extra_js %}
 <script>
 async function saveProfile() {
-    const saveBar      = document.getElementById('saveBar');
-    const isStudent    = saveBar.dataset.isStudent === 'true';
+    const saveBar = document.getElementById('saveBar');
+    const isStudent = saveBar.dataset.isStudent === 'true';
     const hasInternship = saveBar.dataset.hasInternship === 'true';
 
     const payload = {
-        name:       document.getElementById('display_name').value.trim(),
+        name: document.getElementById('display_name').value.trim(),
         first_name: document.getElementById('first_name').value.trim(),
-        last_name:  document.getElementById('last_name').value.trim(),
-        phone:      document.getElementById('phone').value.trim(),
+        last_name: document.getElementById('last_name').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
     };
 
     if (isStudent) {
         payload.student_info = {
-            name_th:         document.getElementById('std_name_th').value,
-            name_en:         document.getElementById('std_name_en').value,
-            student_id:      document.getElementById('std_student_id').value,
-            gpax:            document.getElementById('std_gpax').value,
-            year:            document.getElementById('std_year').value,
-            address_reg:     document.getElementById('std_address').value,
-            phone:           document.getElementById('std_phone').value,
-            military_status: document.getElementById('std_military').value,
+            name_th: document.getElementById('std_name_th').value, name_en: document.getElementById('std_name_en').value,
+            student_id: document.getElementById('std_student_id').value, gpax: document.getElementById('std_gpax').value,
+            year: document.getElementById('std_year').value, address_reg: document.getElementById('std_address').value,
+            phone: document.getElementById('std_phone').value, military_status: document.getElementById('std_military').value,
         };
         payload.family_info = {
             father: { name: document.getElementById('fam_f_name').value, age: document.getElementById('fam_f_age').value, phone: document.getElementById('fam_f_phone').value, job: document.getElementById('fam_f_job').value },
             mother: { name: document.getElementById('fam_m_name').value, age: document.getElementById('fam_m_age').value, phone: document.getElementById('fam_m_phone').value, job: document.getElementById('fam_m_job').value },
         };
-        payload.emergency = {
-            name:    document.getElementById('emg_name').value,
-            phone:   document.getElementById('emg_phone').value,
-            address: document.getElementById('emg_address').value,
-        };
+        payload.emergency = { name: document.getElementById('emg_name').value, phone: document.getElementById('emg_phone').value, address: document.getElementById('emg_address').value };
     }
-
     if (hasInternship) {
         const mentorFull = document.getElementById('mentor_name').value.trim().split(' ');
-        payload.mentor = {
-            first_name: mentorFull[0] || '',
-            last_name:  mentorFull.slice(1).join(' ') || '',
-            phone:      document.getElementById('mentor_phone').value,
-        };
-        payload.internship_place = {
-            company_name: document.getElementById('place_name').value,
-            phone:        document.getElementById('place_phone').value,
-        };
+        payload.mentor = { first_name: mentorFull[0] || '', last_name: mentorFull.slice(1).join(' ') || '', phone: document.getElementById('mentor_phone').value };
+        payload.internship_place = { company_name: document.getElementById('place_name').value, phone: document.getElementById('place_phone').value };
     }
 
     try {
-        const res  = await fetch('/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await fetch('/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data = await res.json();
-        const box  = document.getElementById('alertBox');
+        if (data.success) { showAlert('บันทึกข้อมูลเรียบร้อยแล้ว', 'success'); }
+        else { showAlert(data.message, 'danger'); }
+    } catch (e) { showAlert('เกิดข้อผิดพลาด', 'danger'); }
+}
+
+function showAlert(message, type) {
+    const container = document.getElementById('alertContainer');
+    const alertId = 'alert-' + Date.now();
+    const icons = { success: 'check-circle', danger: 'exclamation-circle' };
+    const colors = { success: 'background:#D1FAE5;color:#059669;', danger: 'background:#FEE2E2;color:#DC2626;' };
+    container.insertAdjacentHTML('beforeend', `<div id="${alertId}" class="hod-toast" style="${colors[type]}" role="alert"><i class="fas fa-${icons[type]} me-2"></i><strong>${message}</strong></div>`);
+    setTimeout(() => { const el = document.getElementById(alertId); if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(40px)'; setTimeout(() => el.remove(), 300); } }, 3000);
+}
+
+async function transferHOD() {
+    const targetId = document.getElementById('transfer_target').value;
+    if (!targetId) { showAlert('กรุณาเลือกอาจารย์ที่จะรับตำแหน่ง', 'danger'); return; }
+
+    const targetName = document.getElementById('transfer_target').selectedOptions[0].text;
+    if (!confirm(`⚠️ ยืนยันการโอนตำแหน่ง HOD ให้ "${targetName}" หรือไม่?\n\n- คุณจะถูกเปลี่ยนเป็น Lecturer ทันที\n- ระบบจะบังคับออกจากระบบ\n- ไม่สามารถยกเลิกได้`)) return;
+
+    if (!confirm('ยืนยันอีกครั้ง: คุณแน่ใจจริงๆ หรือไม่?')) return;
+
+    try {
+        const res = await fetch('/api/transfer-hod', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target_user_id: targetId })
+        });
+        const data = await res.json();
         if (data.success) {
-            box.className = 'alert alert-success border-0 shadow-sm mb-3';
-            box.innerHTML = '<i class="fas fa-check-circle me-2"></i> บันทึกข้อมูลเรียบร้อยแล้ว';
-            box.classList.remove('d-none');
-            setTimeout(() => box.classList.add('d-none'), 3000);
+            alert('โอนตำแหน่ง HOD เรียบร้อยแล้ว ระบบจะนำคุณออกจากระบบ');
+            window.location.href = '/logout';
         } else {
-            box.className = 'alert alert-danger border-0 shadow-sm mb-3';
-            box.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i> ${data.message}`;
-            box.classList.remove('d-none');
+            showAlert('ข้อผิดพลาด: ' + data.message, 'danger');
         }
-    } catch (e) { alert('เกิดข้อผิดพลาด'); }
+    } catch (e) {
+        showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'danger');
+    }
 }
 </script>
 {% endblock %}

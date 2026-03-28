@@ -73,6 +73,8 @@ def profile():
 
         app = None
         internship = None
+        lecturers = []
+
         if session.get('role') == 'student':
             app = db.application_forms.find_one({'student_id': ObjectId(session['user_id'])})
             if app:
@@ -88,7 +90,17 @@ def profile():
             if internship:
                 internship['_id'] = str(internship['_id'])
 
-        return render_template('profile.html', user=user, app=app, internship=internship)
+        # ถ้าเป็น HOD ดึงรายชื่ออาจารย์เพื่อโอนตำแหน่ง
+        if session.get('role') == 'hod':
+            lec_list = list(db.users.find({
+                'role': 'lecturer',
+                '_id': {'$ne': ObjectId(session['user_id'])}
+            }))
+            for l in lec_list:
+                l['_id'] = str(l['_id'])
+            lecturers = lec_list
+
+        return render_template('profile.html', user=user, app=app, internship=internship, lecturers=lecturers)
     except Exception as e:
         return f"Error: {str(e)}", 500
 
@@ -139,5 +151,60 @@ def profile_update():
             )
 
         return jsonify({'success': True, 'message': 'บันทึกข้อมูลเรียบร้อยแล้ว'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@auth_bp.route('/api/transfer-hod', methods=['POST'])
+def transfer_hod():
+    """โอนตำแหน่ง HOD ให้อาจารย์คนอื่น"""
+    if 'user_id' not in session or session.get('role') != 'hod':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    try:
+        data = request.get_json()
+        target_id = data.get('target_user_id')
+
+        if not target_id:
+            return jsonify({'success': False, 'message': 'กรุณาเลือกอาจารย์ที่จะรับตำแหน่ง'})
+
+        db = get_db()
+        current_user_id = ObjectId(session['user_id'])
+        target_user_id = ObjectId(target_id)
+
+        # ตรวจสอบว่าเป้าหมายมีอยู่จริงและเป็น lecturer
+        target_user = db.users.find_one({'_id': target_user_id})
+        if not target_user:
+            return jsonify({'success': False, 'message': 'ไม่พบอาจารย์ที่เลือก'})
+        if target_user.get('role') != 'lecturer':
+            return jsonify({'success': False, 'message': 'สามารถโอนตำแหน่งให้ Lecturer เท่านั้น'})
+
+        # เปลี่ยน target เป็น HOD
+        db.users.update_one(
+            {'_id': target_user_id},
+            {'$set': {
+                'role': 'hod',
+                'can_supervise': True,
+                'updated_at': datetime.now(),
+                'promoted_by': str(current_user_id),
+                'promoted_at': datetime.now()
+            }}
+        )
+
+        # เปลี่ยนตัวเองเป็น lecturer
+        db.users.update_one(
+            {'_id': current_user_id},
+            {'$set': {
+                'role': 'lecturer',
+                'updated_at': datetime.now(),
+                'demoted_at': datetime.now(),
+                'transferred_to': str(target_user_id)
+            }}
+        )
+
+        # เคลียร์ session เพื่อบังคับ logout
+        session.clear()
+
+        return jsonify({'success': True, 'message': f'โอนตำแหน่ง HOD ให้ {target_user.get("name", "")} เรียบร้อยแล้ว'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
