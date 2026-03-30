@@ -40,7 +40,7 @@ def check_status():
 @upload_bp.route('/upload', methods=['GET'])
 def upload_page():
     if 'user_id' not in session:
-        return redirect(url_for('auth.login_page'))
+        return redirect(url_for('auth.login'))
     
     user_id = ObjectId(session.get('user_id'))
     documents = []
@@ -181,6 +181,7 @@ def save_document():
                 'upload_date': datetime.now()
             },
             'ocr_extracted_data': ocr_data,
+            'status': 'approved',
             'is_verified': True,
             'created_at': datetime.now(),
             'updated_at': datetime.now()
@@ -209,7 +210,7 @@ def save_document():
 
 @upload_bp.route('/documents', methods=['GET'])
 def list_documents():
-    if 'user_id' not in session: return redirect(url_for('auth.login_page'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
     role = session.get('role')
     user_id = ObjectId(session.get('user_id'))
     query = {} if role in ['hod', 'lecturer'] else {'student_id': user_id}
@@ -232,7 +233,7 @@ def list_documents():
 
 @upload_bp.route('/document/<id>', methods=['GET'])
 def view_document(id):
-    if 'user_id' not in session: return redirect(url_for('auth.login_page'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
     try:
         doc = get_collection('application_forms').find_one({'_id': ObjectId(id)})
         is_app_form = True
