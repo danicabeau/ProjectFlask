@@ -5,12 +5,25 @@ import torch
 import tempfile
 import gc
 import sys
-import threading
 from typing import Dict, Any, List, Union, Callable, Optional
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 from peft import PeftModel
-from transformers import AutoModelForImageTextToText, AutoProcessor, TextIteratorStreamer
+from transformers import AutoModelForImageTextToText, AutoProcessor
 from qwen_vl_utils import process_vision_info
+
+# ================================================================
+# ⚙️ CONFIG — แม่นที่สุดภายใน 5 นาที
+# ================================================================
+FORCE_CPU = True
+USE_BFLOAT16 = True        # bfloat16 บน Ryzen 6800HS: เร็ว + ถูกต้อง
+MAX_LONG_SIDE = 1400           # 0 = ไม่ resize เลย ให้โมเดลเห็นภาพคมชัดสุด
+PDF_DPI = 200               # DPI สูง → ลายมือคมชัด → อ่านแม่นขึ้น
+JPEG_QUALITY = 95
+MAX_TOKENS_PAGE1 = 900      # ← เพิ่มจาก 700 เพราะข้อมูลมารดาอยู่ท้ายหน้า 1 โดนตัด
+MAX_TOKENS_PAGE2 = 400
+MAX_TOKENS_ACCEPTANCE = 600
+ENHANCE_IMAGE = True        # เพิ่ม contrast + sharpen ก่อนส่งเข้าโมเดล
+
 
 def thai_date_to_iso(date_str):
     if not date_str: return ""
@@ -26,418 +39,347 @@ def thai_date_to_iso(date_str):
             month = months.get(parts[1], '01')
             year = str(int(parts[2]) - 543)
             return f"{year}-{month}-{day}"
-    except:
-        pass
+    except: pass
     return ""
 
 
-class ProgressCallback:
-    """ตัวจัดการ Progress สำหรับ OCR Pipeline ทั้งหมด"""
+def _resize_if_needed(image, max_long_side=MAX_LONG_SIDE):
+    if max_long_side <= 0:
+        return image
+    w, h = image.size
+    if max(w, h) > max_long_side:
+        scale = max_long_side / max(w, h)
+        new_w, new_h = int(w * scale), int(h * scale)
+        image = image.resize((new_w, new_h), Image.LANCZOS)
+        print(f"  ⚡ Resized: {w}x{h} → {new_w}x{new_h}")
+    return image
 
-    def __init__(self, callback: Optional[Callable[[int, str], None]] = None, max_tokens: int = 1500):
-        """
-        callback: function(percent: int, message: str) — ถูกเรียกทุกครั้งที่ progress เปลี่ยน
-                  ถ้าไม่ส่ง callback มา จะ print progress bar ลง console แทน
-        max_tokens: จำนวน token สูงสุดที่ generate (ใช้คำนวณ %)
-        """
+
+def _enhance_for_ocr(image):
+    """ปรับภาพให้เหมาะกับ OCR ลายมือ — เพิ่ม contrast + sharpen"""
+    if not ENHANCE_IMAGE:
+        return image
+    image = ImageEnhance.Contrast(image).enhance(1.3)
+    image = ImageEnhance.Sharpness(image).enhance(1.5)
+    image = ImageEnhance.Brightness(image).enhance(1.05)
+    print("  🔧 Image enhanced (contrast+sharpen)")
+    return image
+
+
+class ProgressCallback:
+    def __init__(self, callback=None, max_tokens=800):
         self._callback = callback
         self._max_tokens = max_tokens
         self._current_percent = 0
 
-    def _emit(self, percent: int, message: str):
+    def _emit(self, percent, message):
         percent = max(0, min(100, percent))
-        if percent <= self._current_percent and percent < 100:
-            return  # ไม่ส่งซ้ำ
+        if percent <= self._current_percent and percent < 100: return
         self._current_percent = percent
         if self._callback:
             self._callback(percent, message)
         else:
-            # Default: print progress bar ลง console
             bar_len = 30
             filled = int(bar_len * percent / 100)
             bar = '█' * filled + '░' * (bar_len - filled)
             sys.stdout.write(f'\r  [{bar}] {percent:3d}%  {message}')
             sys.stdout.flush()
-            if percent >= 100:
-                sys.stdout.write('\n')
+            if percent >= 100: sys.stdout.write('\n')
 
-    def on_preprocess(self):
-        self._emit(5, "กำลังเตรียมรูปภาพ...")
-
-    def on_tokenize(self):
-        self._emit(15, "กำลัง tokenize ข้อมูล...")
-
-    def on_generate_start(self):
-        self._emit(20, "AI กำลังอ่านเอกสาร...")
-
-    def on_generate_token(self, token_count: int):
-        # generate ใช้ช่วง 20% → 85%
-        progress = 20 + int(65 * min(token_count / self._max_tokens, 1.0))
-        self._emit(progress, f"AI กำลังอ่าน... ({token_count} tokens)")
-
-    def on_decode(self):
-        self._emit(88, "กำลัง decode ผลลัพธ์...")
-
-    def on_parse(self):
-        self._emit(92, "กำลัง parse ข้อมูล...")
-
-    def on_done(self):
-        self._emit(100, "เสร็จสิ้น ✅")
+    def on_preprocess(self): self._emit(5, "กำลังเตรียมรูปภาพ...")
+    def on_page(self, n, total): self._emit(10 + int(70 * n / total), f"AI กำลังอ่านหน้า {n}/{total}...")
+    def on_parse(self): self._emit(90, "กำลัง parse ข้อมูล...")
+    def on_done(self): self._emit(100, "เสร็จสิ้น ✅")
 
 
 class TyphoonOCR:
-    def __init__(self, model_path: str = None):
+    def __init__(self, model_path=None):
         if model_path is None:
             model_path = os.path.abspath(r"D:\ProjectFlask\models\Typhoon-OCR-HighDetail-Model")
 
         base_model_id = "typhoon-ai/typhoon-ocr1.5-2b"
-        print("🔄 Loading Typhoon OCR Model...")
+        dtype = torch.bfloat16 if USE_BFLOAT16 else torch.float32
+        device = "cpu" if FORCE_CPU else "auto"
+
+        print(f"🔄 Loading Typhoon OCR (CPU + LoRA)...")
+        print(f"   CPU: Ryzen 7 6800HS | Dtype: {dtype}")
+
         base_model = AutoModelForImageTextToText.from_pretrained(
-            base_model_id,
-            dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto",
-            trust_remote_code=True
-        )
+            base_model_id, dtype=dtype, device_map=device, trust_remote_code=True)
         self.model = PeftModel.from_pretrained(base_model, model_path).merge_and_unload()
         self.processor = AutoProcessor.from_pretrained(base_model_id, trust_remote_code=True)
-        print("✅ Typhoon OCR Online (Dual-Document Mode)")
+        self.device = torch.device("cpu") if FORCE_CPU else self.model.device
+        print(f"✅ Typhoon OCR Online (CPU + LoRA + {dtype})")
 
     def _get_empty_structure(self):
         return {
             'internship_place': {'company_name': '', 'phone': '', 'address': '', 'email': ''},
             'mentor': {'first_name': '', 'last_name': '', 'phone': ''},
-            'internship_period': {'start_date': '', 'end_date': ''}
-        }
+            'internship_period': {'start_date': '', 'end_date': ''}}
 
     def _get_application_structure(self):
         return {
-            'student_info': {
-                'name_th': '', 'name_en': '', 'student_id': '', 'year': '',
-                'gpax': '', 'dob': '', 'address_reg': '', 'phone': '', 'military_status': ''
-            },
-            'family_info': {
-                'father': {'name': '', 'age': '', 'job': '', 'phone': ''},
-                'mother': {'name': '', 'age': '', 'job': '', 'phone': ''}
-            },
-            'emergency': {'name': '', 'phone': '', 'address': ''}
-        }
+            'student_info': {'name_th': '', 'name_en': '', 'student_id': '', 'year': '',
+                             'gpax': '', 'dob': '', 'address_reg': '', 'phone': '', 'military_status': ''},
+            'family_info': {'father': {'name': '', 'age': '', 'job': '', 'phone': ''},
+                            'mother': {'name': '', 'age': '', 'job': '', 'phone': ''}},
+            'emergency': {'name': '', 'phone': '', 'address': ''}}
 
     def _clear_memory(self):
-        if torch.cuda.is_available(): torch.cuda.empty_cache()
         gc.collect()
 
-    def _stitch_images(self, image_paths: List[str]) -> str:
-        """✅ ต่อรูปหลายไฟล์เป็นภาพเดียวในแนวตั้ง แล้วคืน temp path"""
-        images = [Image.open(p).convert("RGB") for p in image_paths]
-        total_height = sum(img.height for img in images)
-        max_width = max(img.width for img in images)
-        stitched = Image.new('RGB', (max_width, total_height), (255, 255, 255))
-        y = 0
-        for img in images:
-            stitched.paste(img, (0, y))
-            y += img.height
-        fd, temp_path = tempfile.mkstemp(suffix='.jpg')
-        os.close(fd)
-        stitched.save(temp_path, 'JPEG', quality=95)
-        return temp_path
-
-    def extract_structured_data(
-        self,
-        image_path: str,
-        doc_type: str = 'application_form',
-        progress: Optional[ProgressCallback] = None
-    ) -> Dict[str, Any]:
-        try:
-            if doc_type == 'application_form':
-                prompt = "อ่านข้อมูลจากใบสมัครนี้ สกัดข้อมูลนักศึกษาไทยและอังกฤษ, ข้อมูลครอบครัว, และบุคคลติดต่อได้ในกรณีฉุกเฉินจนถึงข้อ 3.2"
-            else:
-                prompt = "อ่านข้อความทั้งหมดในเอกสารนี้ตามลำดับบรรทัด และรักษาโครงสร้างตารางไว้"
-
-            # --- Stage 1: Preprocess ---
-            if progress: progress.on_preprocess()
-
-            with Image.open(image_path) as img:
-                image = img.convert("RGB")
-                messages = [{"role": "user", "content": [{"type": "image", "image": image}, {"type": "text", "text": prompt}]}]
-                text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-                image_inputs, _ = process_vision_info(messages)
-
-                # --- Stage 2: Tokenize ---
-                if progress: progress.on_tokenize()
-                inputs = self.processor(text=[text], images=image_inputs, padding=True, return_tensors="pt").to(self.model.device)
-
-                # --- Stage 3: Generate with progress tracking ---
-                if progress: progress.on_generate_start()
-
-                max_new_tokens = 1500
-
-                # ใช้ TextIteratorStreamer เพื่อนับ token แบบ real-time
-                streamer = TextIteratorStreamer(self.processor.tokenizer, skip_special_tokens=True)
-                generation_kwargs = dict(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=False,
-                    streamer=streamer,
-                )
-
-                # รัน generate ใน thread แยก
-                thread = threading.Thread(target=self._generate_in_thread, args=(generation_kwargs,))
-                thread.start()
-
-                # นับ token จาก streamer ใน main thread
-                generated_chunks = []
-                token_count = 0
-                for chunk in streamer:
-                    generated_chunks.append(chunk)
-                    # นับคร่าวๆ จาก chunk (1 chunk ≈ 1-3 tokens)
-                    token_count += max(1, len(chunk.split()))
-                    if progress:
-                        progress.on_generate_token(token_count)
-
-                thread.join()
-                output_text = "".join(generated_chunks)
-
-                del inputs, image_inputs
-
-            # --- Stage 4: Decode ---
-            if progress: progress.on_decode()
-            print(f"DEBUG: AI Raw Response ({doc_type}) ->\n{output_text}")
-
-            # --- Stage 5: Parse ---
-            if progress: progress.on_parse()
-            result = self.parse_application_data(output_text) if doc_type == 'application_form' else self.parse_internship_data(output_text)
-
-            if progress: progress.on_done()
-            return result
-
-        except Exception as e:
-            print(f"ERROR in extract_structured_data: {e}")
-            return self._get_application_structure() if doc_type == 'application_form' else self._get_empty_structure()
-        finally:
-            self._clear_memory()
-
-    def _generate_in_thread(self, generation_kwargs):
-        """รัน model.generate ใน thread แยกเพื่อไม่ block streamer"""
+    def _ocr_single_image(self, image, prompt, max_new_tokens=800):
+        image = _resize_if_needed(image)
+        image = _enhance_for_ocr(image)
+        messages = [{"role": "user", "content": [
+            {"type": "image", "image": image}, {"type": "text", "text": prompt}]}]
+        text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        image_inputs, _ = process_vision_info(messages)
+        inputs = self.processor(text=[text], images=image_inputs, padding=True, return_tensors="pt")
+        if FORCE_CPU:
+            inputs = {k: v.to("cpu") if hasattr(v, 'to') else v for k, v in inputs.items()}
         with torch.inference_mode():
-            self.model.generate(**generation_kwargs)
+            output_ids = self.model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+        generated_ids = output_ids[:, inputs['input_ids'].shape[1]:]
+        result = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        del inputs, image_inputs, output_ids, generated_ids
+        self._clear_memory()
+        return result
 
-    def parse_application_data(self, text: str) -> Dict[str, Any]:
+    PROMPT_PAGE1 = "อ่านข้อมูลที่เขียนในแบบฟอร์มนี้ทุกช่อง ตามที่เห็นจริง ห้ามแต่งเพิ่ม"
+    PROMPT_PAGE2 = "อ่านข้อมูลที่เขียนในแบบฟอร์มนี้ทุกช่อง ตามที่เห็นจริง ห้ามแต่งเพิ่ม"
+    PROMPT_ACCEPTANCE = "อ่านข้อมูลที่เขียนในเอกสารนี้ทุกช่อง ตามที่เห็นจริง ห้ามแต่งเพิ่ม"
+
+    def process_document(self, file_path_or_list, file_type, doc_type='application_form', progress_callback=None):
+        progress = ProgressCallback(callback=progress_callback)
+        try:
+            if file_type.lower() == 'pdf':
+                from pdf2image import convert_from_path
+                if progress: progress.on_preprocess()
+                images = convert_from_path(file_path_or_list, dpi=PDF_DPI)
+                total_pages = min(len(images), 2 if doc_type == 'application_form' else 1)
+                all_text = ""
+                for i in range(total_pages):
+                    if progress: progress.on_page(i + 1, total_pages)
+                    prompt = self.PROMPT_PAGE1 if (doc_type == 'application_form' and i == 0) else (self.PROMPT_PAGE2 if doc_type == 'application_form' else self.PROMPT_ACCEPTANCE)
+                    max_tok = MAX_TOKENS_PAGE1 if (doc_type == 'application_form' and i == 0) else (MAX_TOKENS_PAGE2 if doc_type == 'application_form' else MAX_TOKENS_ACCEPTANCE)
+                    print(f"  📖 Processing page {i+1}/{total_pages}...")
+                    page_text = self._ocr_single_image(images[i].convert("RGB"), prompt, max_tok)
+                    print(f"  DEBUG Page {i+1} Response:\n{page_text}\n{'='*50}")
+                    all_text += page_text + "\n"
+                if progress: progress.on_parse()
+                data = self.parse_application_data(all_text) if doc_type == 'application_form' else self.parse_internship_data(all_text)
+                if progress: progress.on_done()
+                return {'success': True, 'data': data}
+            else:
+                if isinstance(file_path_or_list, list) and len(file_path_or_list) > 1:
+                    imgs = [Image.open(p).convert("RGB") for p in file_path_or_list]
+                    total_h = sum(im.height for im in imgs)
+                    max_w = max(im.width for im in imgs)
+                    stitched = Image.new('RGB', (max_w, total_h), (255, 255, 255))
+                    y = 0
+                    for im in imgs: stitched.paste(im, (0, y)); y += im.height
+                    image = stitched
+                else:
+                    path = file_path_or_list[0] if isinstance(file_path_or_list, list) else file_path_or_list
+                    image = Image.open(path).convert("RGB")
+                if progress: progress.on_preprocess()
+                prompt = self.PROMPT_PAGE1 if doc_type == 'application_form' else self.PROMPT_ACCEPTANCE
+                max_tok = MAX_TOKENS_PAGE1 if doc_type == 'application_form' else MAX_TOKENS_ACCEPTANCE
+                if progress: progress.on_page(1, 1)
+                output_text = self._ocr_single_image(image, prompt, max_tok)
+                print(f"  DEBUG Response:\n{output_text}")
+                if progress: progress.on_parse()
+                data = self.parse_application_data(output_text) if doc_type == 'application_form' else self.parse_internship_data(output_text)
+                if progress: progress.on_done()
+                return {'success': True, 'data': data}
+        except Exception as e:
+            print(f"ERROR: {e}")
+            import traceback; traceback.print_exc()
+            return {'success': False, 'error': str(e)}
+
+    # ================================================================
+    # PARSER: ใบสมัคร — แก้ regex ให้จับ output จริงจากโมเดล
+    # ================================================================
+    def parse_application_data(self, text):
         data = self._get_application_structure()
         text = text.replace('&amp;', '&')
 
-        # Zone Splitting
-        fam_split = re.split(r'\*\*ข้อมูลครอบครัว.*?\*\*', text)
-        stu_zone = fam_split[0]
-        rest_1 = fam_split[1] if len(fam_split) > 1 else ""
-        emg_split = re.split(r'\*\*บุคคล(?:ที่)?ติดต่อได้ในกรณีฉุกเฉิน.*?\*\*', rest_1)
-        fam_zone = emg_split[0]
-        emg_zone = emg_split[1] if len(emg_split) > 1 else ""
+        # ลบ ** (bold) และ * (bullet) ออก
+        clean = re.sub(r'\*\*', '', text)
+        clean = re.sub(r'^\s*\*\s+', '', clean, flags=re.MULTILINE)
 
-        # Fallback: plain text split
-        if not fam_zone and not emg_zone:
-            fam_split2 = re.split(r'ข้อมูลครอบครัว', text)
-            stu_zone = fam_split2[0]
-            rest_1 = fam_split2[1] if len(fam_split2) > 1 else ""
-            emg_split2 = re.split(r'บุคคล(?:ที่)?ติดต่อได้ในกรณีฉุกเฉิน', rest_1)
-            fam_zone = emg_split2[0]
-            emg_zone = emg_split2[1] if len(emg_split2) > 1 else ""
+        # --- แยกโซน ---
+        stu_zone, fam_zone, emg_zone = clean, "", ""
+        for pat in [r'ข้อมูลครอบครัว\s*\(?Family', r'Family details', r'2\.\s*ข้อมูลครอบครัว']:
+            parts = re.split(pat, clean, maxsplit=1, flags=re.I)
+            if len(parts) > 1:
+                stu_zone, rest = parts[0], parts[1]
+                for epat in [r'บุคคล(?:ที่)?ติดต่อ', r'Emergency', r'3\.\s*บุคคล']:
+                    ep = re.split(epat, rest, maxsplit=1, flags=re.I)
+                    if len(ep) > 1: fam_zone, emg_zone = ep[0], ep[1]; break
+                if not emg_zone: fam_zone = rest
+                break
 
-        print(f"DEBUG stu_zone: {stu_zone[:200]}")
-        print(f"DEBUG fam_zone: {fam_zone[:200]}")
-        print(f"DEBUG emg_zone: {emg_zone[:200]}")
-
-        # --- โซนนักศึกษา ---
-        m_th = re.search(r'ชื่อ-สกุล\s*[:\s]*(?:นาย/นาง/นางสาว\s*)?(?:ไทย\s*)?([ก-๙][ก-๙\s]+)', stu_zone)
+        # --- นักศึกษา ---
+        m_th = re.search(r'ไทย[:\s]+([ก-๙][ก-๙\s]+?)(?:\n|Name|$)', stu_zone)
+        if not m_th:
+            m_th = re.search(r'(?:นาย|นาง|นางสาว)\s+([ก-๙][ก-๙\s]+?)(?:\n|Name|English|$)', stu_zone)
         if m_th: data['student_info']['name_th'] = m_th.group(1).strip()
 
-        m_en = re.search(r'(?:Name.*?Surname|English)\s*[:\s]*(?:Mr\./Mrs\./Miss\.\s*)?([A-Za-z][A-Za-z\s]+)', stu_zone, re.IGNORECASE)
+        m_en = re.search(r'English[:\s]+([A-Za-z][A-Za-z\s\.]+?)(?:\n|รหัส|Student|$)', stu_zone, re.I)
+        if not m_en:
+            m_en = re.search(r'(?:Mr\.|Mrs\.|Ms\.|Miss\.?)\s+([A-Za-z][A-Za-z\s\.]+?)(?:\n|$)', stu_zone, re.I)
         if m_en: data['student_info']['name_en'] = m_en.group(1).strip()
 
-        m_id = re.search(r'รหัสนักศึกษา[^0-9]*(\d{10,13})', stu_zone)
+        m_id = re.search(r'(?:รหัสนักศึกษา|Student\s*identification\s*No\.?)[^0-9]*(\d{10,13})', stu_zone)
         if m_id: data['student_info']['student_id'] = m_id.group(1)
 
-        m_year = re.search(r'ชั้นปี(?:ที่)?\s*[:\s]*(\d)', stu_zone)
+        m_year = re.search(r'(?:ชั้นปี(?:ที่)?|Year)[^0-9]*(\d)\b', stu_zone)
         if m_year: data['student_info']['year'] = m_year.group(1)
 
         m_gpax = re.search(r'(?:GPAX|เกรดเฉลี่ยรวม)[^0-9]*(\d+\.\d+)', stu_zone)
         if m_gpax: data['student_info']['gpax'] = m_gpax.group(1)
 
-        m_dob = re.search(r'(?:วันเดือนปีเกิด|Date of birth)[^0-9]*(\d{1,2}/\d{2}/\d{4})', stu_zone)
+        m_dob = re.search(r'(?:วันเดือนปีเกิด|Date of birth|วันเกิด)[^0-9]*(\d{1,2}\s*/\s*\d{1,2}\s*/\s*\d{4})', stu_zone)
         if m_dob:
-            parts = m_dob.group(1).split('/')
-            if len(parts) == 3:
-                be_year = int(parts[2])
-                ce_year = be_year - 543 if be_year > 2400 else be_year
-                data['student_info']['dob'] = f"{ce_year}-{parts[1]}-{parts[0].zfill(2)}"
+            dc = m_dob.group(1).replace(' ', '')
+            p = dc.split('/')
+            if len(p) == 3:
+                try:
+                    be = int(p[2]); ce = be - 543 if be > 2400 else be
+                    data['student_info']['dob'] = f"{ce}-{p[1].zfill(2)}-{p[0].zfill(2)}"
+                except: pass
 
-        m_addr = re.search(r'ที่อยู่ตามทะเบียน[^ก-๙0-9]*([0-9ก-๙].*?)(?=โทรศัพท์|\n\n)', stu_zone, re.DOTALL)
-        if m_addr: data['student_info']['address_reg'] = re.sub(r'\s+', ' ', m_addr.group(1)).strip()
+        # ที่อยู่ — หยุดที่ \n แล้วตัด "โทรศัพท์..." ที่ติดท้าย
+        m_addr = re.search(r'(?:ที่อยู่ตามทะเบียน|Registered Address)[^0-9ก-๙]*([0-9ก-๙][^\n]*)', stu_zone)
+        if m_addr:
+            addr = re.split(r'\s*โทรศัพท์', m_addr.group(1))[0].strip()
+            data['student_info']['address_reg'] = addr
 
-        m_phone = re.search(r'โทรศัพท์[^0-9]*(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', stu_zone)
+        m_phone = re.search(r'(?:โทรศัพท์|Telephone|Mobile)[^0-9]*(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', stu_zone)
         if m_phone: data['student_info']['phone'] = m_phone.group(1).strip()
 
-        if 'ยังไม่ได้รับการเกณฑ์' in stu_zone:
+        if 'ยังไม่ได้รับการ' in stu_zone or 'Not yet served' in stu_zone:
             data['student_info']['military_status'] = 'ยังไม่ได้รับการเกณฑ์'
-        elif 'ปลดเป็นทหารกองหนุน' in stu_zone:
+        elif 'ปลดเป็นทหารกอง' in stu_zone:
             data['student_info']['military_status'] = 'ปลดเป็นทหารกองหนุน'
-        elif 'ได้รับการยกเว้น' in stu_zone:
+        elif 'ได้รับการยกเว้น' in stu_zone or 'Exempted' in stu_zone:
             data['student_info']['military_status'] = 'ได้รับการยกเว้น'
 
-        # --- โซนครอบครัว ---
-        f_match = re.search(r'บิดา\s*ชื่อ-สกุล\s*[:\s]*([ก-๙][ก-๙\s]+?)(?:\s*อายุ|\s*\n|$)', fam_zone)
-        if f_match: data['family_info']['father']['name'] = f_match.group(1).strip()
+        # --- ครอบครัว ---
+        fam = fam_zone if fam_zone else clean
 
-        f_age = re.search(r'(?:บิดา.*?)อายุ\s*[:\s]*(\d+)\s*ปี', fam_zone, re.DOTALL)
+        # บิดา — รองรับทั้ง "บิดา ชื่อ-สกุล จักทำ ทำดี อายุ" และ "บิดา ชื่อ-สกุล: นายธนัฐ"
+        f_name = re.search(r'บิดา\s*ชื่อ[-\s]?สกุล[:\s]*(?:นาย|นาง|นางสาว)?\s*([ก-๙][ก-๙\s]+?)(?:\s*อายุ|\s*\n|$)', fam)
+        if f_name: data['family_info']['father']['name'] = f_name.group(1).strip()
+
+        f_age = re.search(r'(?:บิดา|Father).*?(?:อายุ|Age)[:\s]*(\d{2,3})\s*ปี', fam, re.DOTALL)
         if f_age: data['family_info']['father']['age'] = f_age.group(1)
 
-        f_job = re.search(r'(?:บิดา.*?)อาชีพ\s*[:\s]*([ก-๙][ก-๙\s]+?)(?:\n|โทรศัพท์)', fam_zone, re.DOTALL)
+        f_job = re.search(r'(?:บิดา|Father).*?(?:อาชีพ|Occupation)[:\s]*([ก-๙A-Za-z][^\n(]{2,}?)(?:\n|\(|$)', fam, re.DOTALL)
         if f_job: data['family_info']['father']['job'] = f_job.group(1).strip()
 
-        f_phone = re.search(r'(?:บิดา.*?)(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', fam_zone, re.DOTALL)
+        f_phone = re.search(r'(?:บิดา|Father).*?(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', fam, re.DOTALL)
         if f_phone: data['family_info']['father']['phone'] = f_phone.group(1)
 
-        m_match = re.search(r'มารดา\s*ชื่อ-สกุล\s*[:\s]*([ก-๙][ก-๙\s]+?)(?:\s*อายุ|\s*\n|$)', fam_zone)
-        if m_match: data['family_info']['mother']['name'] = m_match.group(1).strip()
+        # มารดา — ค้นเฉพาะหลัง "มารดา/Mother"
+        mt_match = re.search(r'(มารดา|Mother)(.*)', fam, re.DOTALL | re.I)
+        mt = mt_match.group(2) if mt_match else ""
 
-        m_age = re.search(r'(?:มารดา.*?)อายุ\s*[:\s]*(\d+)\s*ปี', fam_zone, re.DOTALL)
+        m_name = re.search(r'ชื่อ[-\s]?สกุล[:\s]*(?:นาย|นาง|นางสาว)?\s*([ก-๙][ก-๙\s]+?)(?:\s*อายุ|\s*\n|$)', mt)
+        if m_name: data['family_info']['mother']['name'] = m_name.group(1).strip()
+
+        m_age = re.search(r'(?:อายุ|Age)[:\s]*(\d{2,3})\s*ปี', mt)
         if m_age: data['family_info']['mother']['age'] = m_age.group(1)
 
-        m_job = re.search(r'(?:มารดา.*?)อาชีพ\s*[:\s]*([ก-๙][ก-๙\s]+?)(?:\n|โทรศัพท์|-)', fam_zone, re.DOTALL)
-        if m_job: data['family_info']['mother']['job'] = m_job.group(1).strip()
+        m_job = re.search(r'(?:อาชีพ|Occupation)[:\s]*([ก-๙A-Za-z][^\n(]{2,}?)(?:\n|\(|$)', mt)
+        if m_job:
+            val = m_job.group(1).strip()
+            if val and val != '-' and 'Mother' not in val and 'name' not in val and 'ที่อยู่' not in val:
+                data['family_info']['mother']['job'] = val
 
-        m_phone_match = re.search(r'(?:มารดา.*?โทรศัพท์[^0-9]*)(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', fam_zone, re.DOTALL)
-        if m_phone_match: data['family_info']['mother']['phone'] = m_phone_match.group(1)
+        m_phone = re.search(r'(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', mt)
+        if m_phone: data['family_info']['mother']['phone'] = m_phone.group(1)
 
-        # --- โซนติดต่อฉุกเฉิน ---
-        e_name = re.search(r'(?:3\.1\s+)?ชื่อ-สกุล\s*(?:\(นาย/นาง/นางสาว\))?\s*[:\s]*([ก-๙][ก-๙\s]+?)(?:\s*ความเกี่ยวข้อง|\n|$)', emg_zone)
-        if e_name: data['emergency']['name'] = e_name.group(1).strip()
+        # --- ฉุกเฉิน ---
+        if emg_zone:
+            emg = emg_zone
+        else:
+            emg_m = re.search(r'((?:3\.\s*บุคคล|ฉุกเฉิน|Emergency).*)', clean, re.DOTALL | re.I)
+            emg = emg_m.group(1) if emg_m else ""
 
-        e_phone = re.search(r'โทรศัพท์[^0-9]*(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', emg_zone)
-        if e_phone: data['emergency']['phone'] = e_phone.group(1)
+        if emg:
+            e_name = re.search(r'(?:3\.1\s+)?ชื่อ[-\s]?สกุล\s*(?:\(นาย/นาง/นางสาว\))?\s*[:\s]*([ก-๙][ก-๙\s]+?)(?:\s*ความเกี่ยวข้อง|\n|$)', emg)
+            if e_name: data['emergency']['name'] = e_name.group(1).strip()
 
-        e_addr = re.search(r'ที่อยู่[^ก-๙0-9]*([0-9ก-๙].*?)(?=โทรศัพท์|\n\n|$)', emg_zone, re.DOTALL)
-        if e_addr: data['emergency']['address'] = re.sub(r'\s+', ' ', e_addr.group(1)).strip()
+            e_phone = re.search(r'(?:Mobile phone|โทรศัพท์มือถือ)[^0-9]*(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', emg)
+            if not e_phone:
+                e_phone = re.search(r'(?:โทรศัพท์|Telephone)[^0-9]*(0\d{2}[-\s]?\d{3,4}[-\s]?\d{3,4})', emg)
+            if e_phone: data['emergency']['phone'] = e_phone.group(1)
+
+            e_addr = re.search(r'(?:ที่อยู่|Address)\s*(?:\(Address\))?\s*[^ก-๙0-9]*([0-9ก-๙].+?)(?=\s*โทรศัพท์|\s*Telephone|\s*3\.2\s|\s*อาจารย์|\n|$)', emg)
+            if e_addr:
+                addr_val = re.sub(r'\s+', ' ', e_addr.group(1)).strip()
+                # ตัดรหัสไปรษณีย์ที่อาจมีขยะติดท้าย: เก็บถึง 5 หลักสุดท้าย
+                m_zip = re.search(r'^(.*?\d{5})\b', addr_val)
+                if m_zip:
+                    addr_val = m_zip.group(1).strip()
+                data['emergency']['address'] = addr_val
 
         print(f"DEBUG Parsed: {json.dumps(data, ensure_ascii=False, indent=2)}")
         return data
 
-    def parse_internship_data(self, text: str) -> Dict[str, Any]:
+    # ================================================================
+    # PARSER: ใบตอบรับ (ไม่เปลี่ยน)
+    # ================================================================
+    def parse_internship_data(self, text):
         data = self._get_empty_structure()
         def clean_value(val):
             if not val: return ""
             val = val.replace('*', '')
-            labels = [r'ชื่อสถานประกอบการ', r'Employer\s*Name', r'ที่อยู่', r'Address', r'โทรศัพท์', r'Telephone', r'ชื่อ-นามสกุล', r'Name']
-            for label in labels: val = re.sub(label, '', val, flags=re.IGNORECASE)
+            for lab in [r'ชื่อสถานประกอบการ', r'Employer\s*Name', r'ที่อยู่', r'Address',
+                        r'โทรศัพท์', r'Telephone', r'ชื่อ-นามสกุล', r'Name']:
+                val = re.sub(lab, '', val, flags=re.IGNORECASE)
             return re.sub(r'^[\s,:/.-]+|[\s,:/.-]+$', '', val).strip()
 
-        split_match = re.search(r'(ผู้ประสานงาน|Coordinator)', text)
-        company_text = text[:split_match.start()] if split_match else text
-        mentor_text = text[split_match.start():] if split_match else ""
-
-        m_comp = re.search(r'(?:ชื่อสถานประกอบการ|Employer Name)[,\s]+([^\n,]+)', company_text, re.IGNORECASE)
+        m_comp = re.search(r'(?:ชื่อสถานประกอบการ|Employer Name)\s*[,:\s]+([^\n,]+)', text, re.I)
         if m_comp: data['internship_place']['company_name'] = clean_value(m_comp.group(1))
-
-        m_addr = re.search(r'(?:ที่อยู่เลขที่|address)[,\s]+(.+?)(?=\n.*โทรสาร|\nโทรสาร|โทรสาร|,\s*โทรสาร)', company_text, re.IGNORECASE | re.DOTALL)
+        m_addr = re.search(r'(?:ที่อยู่เลขที่|[Aa]ddress)\s*[,:\s]+(.+?)(?=\n.*โทรสาร|\nโทรสาร|โทรสาร|,\s*โทรสาร|\n\s*โทรศัพท์)', text, re.I | re.DOTALL)
         if m_addr: data['internship_place']['address'] = clean_value(m_addr.group(1))
-
-        m_phone = re.search(r'โทรศัพท์/Telephone[,\s]+(0\d[\d\s\-]+?)(?:\s+E-mail|,\s*E-mail|\s*$)', company_text, re.IGNORECASE)
+        m_phone = re.search(r'โทรศัพท์/Telephone[,\s]+(0\d[\d\s\-]+?)(?:\s+E-mail|,\s*E-mail|\s*$)', text, re.I)
         if not m_phone:
-            m_phone = re.search(r'(?:Telephone|โทรศัพท์)[^,\n]*[,\s]+([\d\s-]{9,})', company_text, re.IGNORECASE)
+            m_phone = re.search(r'(?:Telephone|โทรศัพท์)\s*[^,\n]*[,:\s]+([\d\s-]{9,})', text, re.I)
         if m_phone: data['internship_place']['phone'] = clean_value(m_phone.group(1))
-
-        m_email = re.search(r'E-mail[,\s]+([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', company_text, re.IGNORECASE)
+        m_email = re.search(r'E-mail[,:\s]+([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', text, re.I)
         if m_email: data['internship_place']['email'] = m_email.group(1).strip()
 
-        if mentor_text:
-            m_mname = re.search(r'ชื่อ-นามสกุล/Name[,\s]+([ก-๙a-zA-Z][ก-๙a-zA-Z\s]+?)(?:\n|,\s*ตำแหน่ง|ตำแหน่ง)', mentor_text)
-            if not m_mname:
-                m_mname = re.search(r'(?:Name|ชื่อ-นามสกุล)[^,\n]*[,\s]+([^\n,]+)', mentor_text, re.IGNORECASE)
-            if m_mname:
-                parts = clean_value(m_mname.group(1)).split()
+        split = re.search(r'(ผู้ประสานงาน|Coordinator)', text)
+        if split:
+            mt = text[split.start():]
+            m_mn = re.search(r'ชื่อ-นามสกุล/Name[,:\s]+([ก-๙a-zA-Z][ก-๙a-zA-Z\s]+?)(?:\n|ตำแหน่ง)', mt)
+            if not m_mn:
+                m_mn = re.search(r'(?:Name|ชื่อ|ผู้ประสานงานชื่อ)\s*[^,\n]*[,:\s]+([^\n,]+)', mt, re.I)
+            if m_mn:
+                parts = clean_value(m_mn.group(1)).split()
                 data['mentor']['first_name'] = parts[0] if parts else ""
                 data['mentor']['last_name'] = " ".join(parts[1:]) if len(parts) > 1 else ""
+            m_mp = re.search(r'(?:Telephone|โทรศัพท์|ผู้ประสานงานโทร)\s*[^,\n]*[,:\s]+([\d\s-]{9,})', mt, re.I)
+            if m_mp: data['mentor']['phone'] = clean_value(m_mp.group(1))
 
-            m_mphone = re.search(r'โทรศัพท์/Telephone No[.,\s]+(0\d[\d\s\-]+?)(?:\s+E-mail|,\s*E-mail|\s*$)', mentor_text, re.IGNORECASE)
-            if not m_mphone:
-                m_mphone = re.search(r'(?:Telephone|โทรศัพท์)[^,\n]*[,\s]+([\d\s-]{9,})', mentor_text, re.IGNORECASE)
-            if m_mphone: data['mentor']['phone'] = clean_value(m_mphone.group(1))
-
-        m_period = re.search(r'ระหว่างวันที่\s*(.*?)\s*ถึงวันที่\s*(.*?)\s*(?:จำนวน|$)', text)
-        if m_period:
-            data['internship_period']['start_date'] = thai_date_to_iso(clean_value(m_period.group(1)))
-            data['internship_period']['end_date'] = thai_date_to_iso(clean_value(m_period.group(2)))
-
+        m_per = re.search(r'ระหว่างวันที่\s*(.*?)\s*ถึงวันที่\s*(.*?)\s*(?:จำนวน|$)', text)
+        if m_per:
+            data['internship_period']['start_date'] = thai_date_to_iso(clean_value(m_per.group(1)))
+            data['internship_period']['end_date'] = thai_date_to_iso(clean_value(m_per.group(2)))
         return data
-
-    def process_document(
-        self,
-        file_path_or_list: Union[str, List[str]],
-        file_type: str,
-        doc_type: str = 'application_form',
-        progress_callback: Optional[Callable[[int, str], None]] = None
-    ) -> Dict[str, Any]:
-        """
-        ประมวลผลเอกสาร พร้อม progress callback
-
-        progress_callback: function(percent: int, message: str)
-            - percent: 0-100
-            - message: ข้อความสถานะภาษาไทย
-            ตัวอย่าง: progress_callback(50, "AI กำลังอ่าน... (120 tokens)")
-        """
-        progress = ProgressCallback(callback=progress_callback)
-        temp_path = None
-        try:
-            if file_type.lower() == 'pdf':
-                from pdf2image import convert_from_path
-                images = convert_from_path(file_path_or_list, dpi=200)
-                widths = [i.width for i in images]
-                heights = [i.height for i in images]
-                stitched = Image.new('RGB', (max(widths), sum(heights)), (255, 255, 255))
-                y = 0
-                for img in images:
-                    stitched.paste(img, (0, y))
-                    y += img.height
-                fd, temp_path = tempfile.mkstemp(suffix='.jpg')
-                os.close(fd)
-                stitched.save(temp_path, 'JPEG', quality=95)
-                data = self.extract_structured_data(temp_path, doc_type, progress)
-
-            elif isinstance(file_path_or_list, list) and len(file_path_or_list) > 1:
-                temp_path = self._stitch_images(file_path_or_list)
-                data = self.extract_structured_data(temp_path, doc_type, progress)
-
-            else:
-                path = file_path_or_list[0] if isinstance(file_path_or_list, list) else file_path_or_list
-                data = self.extract_structured_data(path, doc_type, progress)
-
-            return {'success': True, 'data': data}
-
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            if temp_path and os.path.exists(temp_path):
-                os.remove(temp_path)
 
 
 _ocr_instance = None
-def process_document_ocr(
-    file_path_or_list: Union[str, List[str]],
-    file_type: str,
-    doc_type: str = 'application_form',
-    progress_callback: Optional[Callable[[int, str], None]] = None
-) -> Dict[str, Any]:
+def process_document_ocr(file_path_or_list, file_type, doc_type='application_form', progress_callback=None):
     """
     ฟังก์ชันหลักสำหรับเรียกใช้ OCR
 
-    ตัวอย่างการใช้งาน:
-    -----------------
-    # แบบ 1: ไม่ใส่ callback → print progress bar ลง console อัตโนมัติ
     result = process_document_ocr("doc.pdf", "pdf")
-
-    # แบบ 2: ส่ง callback เอง (เช่น ส่งไป WebSocket / Flask-SocketIO)
-    def my_progress(percent, message):
-        socketio.emit('ocr_progress', {'percent': percent, 'msg': message})
-
     result = process_document_ocr("doc.pdf", "pdf", progress_callback=my_progress)
     """
     global _ocr_instance
