@@ -21,22 +21,50 @@ PDF_DPI = 200               # DPI สูง → ลายมือคมชั�
 JPEG_QUALITY = 95
 MAX_TOKENS_PAGE1 = 900      # ← เพิ่มจาก 700 เพราะข้อมูลมารดาอยู่ท้ายหน้า 1 โดนตัด
 MAX_TOKENS_PAGE2 = 400
-MAX_TOKENS_ACCEPTANCE = 600
+MAX_TOKENS_ACCEPTANCE = 900
 ENHANCE_IMAGE = True        # เพิ่ม contrast + sharpen ก่อนส่งเข้าโมเดล
 
 
 def thai_date_to_iso(date_str):
     if not date_str: return ""
-    months = {
+    months_full = {
         'มกราคม': '01', 'กุมภาพันธ์': '02', 'มีนาคม': '03', 'เมษายน': '04',
         'พฤษภาคม': '05', 'มิถุนายน': '06', 'กรกฎาคม': '07', 'สิงหาคม': '08',
         'กันยายน': '09', 'ตุลาคม': '10', 'พฤศจิกายน': '11', 'ธันวาคม': '12'
     }
+    months_abbr = {
+        'ม.ค.': '01', 'ก.พ.': '02', 'มี.ค.': '03', 'เม.ย.': '04',
+        'พ.ค.': '05', 'มิ.ย.': '06', 'ก.ค.': '07', 'ส.ค.': '08',
+        'ก.ย.': '09', 'ต.ค.': '10', 'พ.ย.': '11', 'ธ.ค.': '12'
+    }
     try:
-        parts = date_str.strip().split()
+        s = date_str.strip()
+        # ลอง format ย่อก่อน เช่น "5 พ.ค.69" หรือ "5 พ.ค. 69"
+        m_abbr = re.match(r'(\d{1,2})\s*([ก-๙]+\.(?:[ก-๙]+\.)?)\s*(\d{2,4})', s)
+        if m_abbr:
+            day = m_abbr.group(1).zfill(2)
+            month_str = m_abbr.group(2).strip()
+            year_raw = int(m_abbr.group(3))
+            month = months_abbr.get(month_str, '')
+            if not month:
+                # ลองเพิ่ม . ต่อท้ายถ้าไม่มี
+                for k, v in months_abbr.items():
+                    if month_str.replace('.', '') == k.replace('.', ''):
+                        month = v; break
+            if month:
+                # ปี 2 หลัก: 69 → 2569 → CE 2026, ปี 4 หลัก: 2569 → CE 2026
+                if year_raw < 100:
+                    year_be = year_raw + 2500
+                else:
+                    year_be = year_raw
+                year_ce = year_be - 543 if year_be > 2400 else year_be
+                return f"{year_ce}-{month}-{day}"
+
+        # Fallback: format เต็ม เช่น "5 พฤษภาคม 2569"
+        parts = s.split()
         if len(parts) >= 3:
             day = parts[0].zfill(2)
-            month = months.get(parts[1], '01')
+            month = months_full.get(parts[1], '01')
             year = str(int(parts[2]) - 543)
             return f"{year}-{month}-{day}"
     except: pass
@@ -335,6 +363,11 @@ class TyphoonOCR:
     # ================================================================
     def parse_internship_data(self, text):
         data = self._get_empty_structure()
+
+        # ลบ ** (bold) และ * (bullet) ออก — เหมือน parse_application_data
+        text = re.sub(r'\*\*', '', text)
+        text = re.sub(r'^\s*\*\s+', '', text, flags=re.MULTILINE)
+
         def clean_value(val):
             if not val: return ""
             val = val.replace('*', '')
@@ -343,9 +376,9 @@ class TyphoonOCR:
                 val = re.sub(lab, '', val, flags=re.IGNORECASE)
             return re.sub(r'^[\s,:/.-]+|[\s,:/.-]+$', '', val).strip()
 
-        m_comp = re.search(r'(?:ชื่อสถานประกอบการ|Employer Name)\s*[,:\s]+([^\n,]+)', text, re.I)
+        m_comp = re.search(r'(?:ชื่อสถานประกอบการ|ชื่อบริษัท|Employer Name)[/ชื่อบริษัท]*\s*[,:\s]+([^\n]+)', text, re.I)
         if m_comp: data['internship_place']['company_name'] = clean_value(m_comp.group(1))
-        m_addr = re.search(r'(?:ที่อยู่เลขที่|[Aa]ddress)\s*[,:\s]+(.+?)(?=\n.*โทรสาร|\nโทรสาร|โทรสาร|,\s*โทรสาร|\n\s*โทรศัพท์)', text, re.I | re.DOTALL)
+        m_addr = re.search(r'(?:ที่อยู่เลขที่|ที่อยู่|[Aa]ddress)[/a-zA-Z]*\s*[,:\s]+(.+?)(?=\n.*โทรสาร|\nโทรสาร|โทรสาร|,\s*โทรสาร|\n\s*โทรศัพท์|\nโทรศัพท์)', text, re.I | re.DOTALL)
         if m_addr: data['internship_place']['address'] = clean_value(m_addr.group(1))
         m_phone = re.search(r'โทรศัพท์/Telephone[,\s]+(0\d[\d\s\-]+?)(?:\s+E-mail|,\s*E-mail|\s*$)', text, re.I)
         if not m_phone:
@@ -367,7 +400,7 @@ class TyphoonOCR:
             m_mp = re.search(r'(?:Telephone|โทรศัพท์|ผู้ประสานงานโทร)\s*[^,\n]*[,:\s]+([\d\s-]{9,})', mt, re.I)
             if m_mp: data['mentor']['phone'] = clean_value(m_mp.group(1))
 
-        m_per = re.search(r'ระหว่างวันที่\s*(.*?)\s*ถึงวันที่\s*(.*?)\s*(?:จำนวน|$)', text)
+        m_per = re.search(r'ระหว่างวันที่[:\s]*(.*?)\s*ถึงวันที่\s*(.*?)\s*(?:จำนวน|$)', text)
         if m_per:
             data['internship_period']['start_date'] = thai_date_to_iso(clean_value(m_per.group(1)))
             data['internship_period']['end_date'] = thai_date_to_iso(clean_value(m_per.group(2)))
